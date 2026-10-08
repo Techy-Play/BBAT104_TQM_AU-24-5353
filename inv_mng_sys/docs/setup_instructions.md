@@ -1,4 +1,4 @@
-# Environment Setup & Dependency Instructions
+# Environment Setup & Execution Instructions
 
 ## 1. Prerequisites
 
@@ -10,7 +10,7 @@
 
 ## 2. Setting Up the Virtual Environment
 
-Open a terminal (PowerShell or Command Prompt) and navigate to the project root:
+Open a terminal (PowerShell or Command Prompt) and navigate to the project directory:
 
 ```powershell
 cd "c:\Users\kamal\Documents\TQM Project\inv_mng_sys"
@@ -51,33 +51,62 @@ pip install -r requirements.txt
 ```
 
 ### Included Packages:
-- `customtkinter`: Modern UI library built on Tkinter.
-- `pandas`: Data manipulation and dataset operations.
-- `matplotlib` & `seaborn`: SQC / TQM statistical plotting and charts.
-- `pytest`: Clean test discovery and execution (alongside built-in `unittest`).
+- `customtkinter`: Modern offline UI toolkit for Python.
+- `pandas`: Data structures and dataset processing.
+- `matplotlib` & `seaborn`: SQC and TQM charts for subsequent evaluation phases.
+- `pytest`: Optional test discovery tool (Python standard library `unittest` is also supported out-of-the-box).
 
 ---
 
 ## 4. Running the Tests
 
-To run the database and unit test suite:
+To run the automated test suite covering database persistence, indexing, first-run setup, authentication, and session management:
 
 ```powershell
 # Using Python's built-in unittest:
-python -m unittest discover -s tests -p "test_*.py"
+python -m unittest discover -s tests -p "test_*.py" -v
 
 # Or using pytest:
-pytest
+pytest -v
 ```
 
 ---
 
 ## 5. Running the Application
 
-To launch the Inventory Management System:
+To launch the desktop application:
 
 ```powershell
 python run.py
 # or
 python app/main.py
 ```
+
+---
+
+## 6. Application Workflow & Launch Behavior
+
+### First Launch (First-Run Setup)
+When the application starts for the first time and detects an empty `users` table:
+1. The **First-Run Setup** wizard is displayed.
+2. The user configures:
+   - Full Name
+   - Store / Warehouse / Business Name
+   - Unique Username
+   - Password (minimum 6 characters) and Confirmation
+   - "Keep Me Logged In" preference
+3. Credentials are encrypted using salted PBKDF2 (SHA-256) and saved in `database/ims.db`.
+4. The post-setup dashboard placeholder opens displaying personalized organization details.
+
+### Subsequent Launches (Login & Sessions)
+- **If Keep Me Logged In was enabled**: The application validates the cryptographic session token against the local database and enters directly into the dashboard.
+- **If Keep Me Logged In was disabled**: The **Sign In** screen is displayed, prompting for username and password.
+- **Log Out**: Clicking "Log Out" on the dashboard immediately clears the active session token in SQLite and returns the user to the login screen.
+
+---
+
+## 7. Troubleshooting
+
+- **Database Locked Error**: The database layer uses SQLite Write-Ahead Logging (`WAL` mode) and sets a 5000ms busy timeout. If a process locks the database, ensure only one instance is executing migrations.
+- **PowerShell Script Execution Policy**: If `.venv\Scripts\Activate.ps1` gives an execution policy error, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` in your PowerShell terminal.
+- **CustomTkinter Scaling**: CustomTkinter automatically scales based on Windows DPI settings. If running in a virtual machine or low-resolution display, ensure window minimum dimensions (860x620) can fit on screen.

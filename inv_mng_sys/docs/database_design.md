@@ -97,3 +97,19 @@ To fulfill **Q13 — Faster Search & Retrieval**, SQLite B-Tree indexes are crea
 To maintain audit integrity without manual application code overhead, SQLite `AFTER UPDATE` triggers update `updated_at`:
 - `trg_products_updated_at`: Automatically sets `updated_at = CURRENT_TIMESTAMP` when any product column is modified.
 - `trg_users_updated_at`: Automatically sets `updated_at = CURRENT_TIMESTAMP` when user details change.
+
+---
+
+## 5. Phase 3 & Phase 4: Authentication & Session Data Storage
+
+### 5.1 Credential & Salt Storage
+- **Password Hashes**: Computed using PBKDF2-HMAC-SHA256 (100,000 iterations). Stored as a 64-character hexadecimal string in `users.password_hash`.
+- **Salts**: 32-character hexadecimal random salts generated per user via `secrets.token_hex(16)` and stored in `users.salt`.
+- **Plaintext Passwords**: Strictly prohibited. No unhashed password is ever written to SQLite or stored in logs.
+
+### 5.2 Session Token Lifecycle & App Settings
+- **`active_session_token`**: Stored in `app_settings` under key `'active_session_token'`. Points to the currently active session token on this local machine.
+- **Login with Keep Me Logged In**: A 64-character random token is generated and saved in both `users.session_token` and `app_settings.active_session_token`. `users.keep_logged_in` is set to `1`.
+- **Login without Keep Me Logged In**: `users.session_token` is cleared (`NULL`), `users.keep_logged_in` is set to `0`, and `app_settings.active_session_token` is cleared (`''`).
+- **Logout**: Clears `users.session_token` (`NULL`), resets `keep_logged_in` (`0`), and empties `active_session_token` in `app_settings`.
+
