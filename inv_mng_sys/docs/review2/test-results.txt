@@ -1,0 +1,94 @@
+======================================================================
+BBAT104 Fundamentals of Total Quality Management — Review 2 Test Results
+System: Inventory Management System (IMS) — Quality Goal: Q13 Faster Search & Retrieval
+Test Run Timestamp: 2026-10-11T23:59:27+05:30
+Environment: Windows 11 / Python 3.11.9 / SQLite 3.45.3 / CustomTkinter 5.2.2
+Command: python -m unittest discover -s tests -p "test_*.py" -v
+======================================================================
+
+test_01_first_user_creation (test_authentication.TestAuthenticationAndSecurity.test_01_first_user_creation)
+Confirm first-run detection and initial user creation. ... ok
+test_02_username_uniqueness (test_authentication.TestAuthenticationAndSecurity.test_02_username_uniqueness)
+Confirm duplicate username registration is rejected. ... ok
+test_03_password_hashing (test_authentication.TestAuthenticationAndSecurity.test_03_password_hashing)
+Confirm PBKDF2 password hashing produces distinct hashes with different salts. ... ok
+test_04_correct_password_verification (test_authentication.TestAuthenticationAndSecurity.test_04_correct_password_verification)
+Confirm correct password verifies and authenticates. ... ok
+test_05_incorrect_password_rejection (test_authentication.TestAuthenticationAndSecurity.test_05_incorrect_password_rejection)
+Confirm incorrect password or nonexistent user is rejected with generic error. ... Authentication failed: invalid password for user 'lokesh'.
+Authentication failed: user 'unknown_user' not found.
+ok
+test_06_password_not_stored_as_plaintext (test_authentication.TestAuthenticationAndSecurity.test_06_password_not_stored_as_plaintext)
+Verify the database strictly stores salted hashes, never plaintext passwords. ... ok
+test_07_session_token_generation (test_authentication.TestAuthenticationAndSecurity.test_07_session_token_generation)
+Confirm session token generation produces 64-character unique cryptographic strings. ... ok
+test_08_keep_me_logged_in_behavior (test_authentication.TestAuthenticationAndSecurity.test_08_keep_me_logged_in_behavior)
+Verify Keep Me Logged In sets session tokens and preferences correctly. ... ok
+test_09_session_restoration (test_authentication.TestAuthenticationAndSecurity.test_09_session_restoration)
+Confirm valid Keep Me Logged In session is restored automatically. ... ok
+test_10_session_invalidation_logout (test_authentication.TestAuthenticationAndSecurity.test_10_session_invalidation_logout)
+Confirm logout invalidates session token and prevents restoration. ... ok
+test_11_user_profile_retrieval_and_update (test_authentication.TestAuthenticationAndSecurity.test_11_user_profile_retrieval_and_update)
+Confirm profile retrieval, editing, and password change. ... Authentication failed: invalid password for user 'profile_user'.
+ok
+test_12_persistence_after_database_close_reopen (test_authentication.TestAuthenticationAndSecurity.test_12_persistence_after_database_close_reopen)
+Confirm session and user persistence across database reopen and restart. ... ok
+test_constraints_and_validation (test_database.TestDatabaseLayer.test_constraints_and_validation)
+Confirm database table constraints prevent invalid data storage. ... Transaction rolled back due to error: CHECK constraint failed: quantity >= 0
+Transaction rolled back due to error: CHECK constraint failed: price >= 0.0
+ok
+test_init_database_creates_tables_and_indexes (test_database.TestDatabaseLayer.test_init_database_creates_tables_and_indexes)
+Confirm database initializes required tables and Q13 indexes. ... ok
+test_persistence_across_connection_reopen (test_database.TestDatabaseLayer.test_persistence_across_connection_reopen)
+Confirm data persists across connection close, reopen, and app restart. ... ok
+test_q13_explain_query_plan_uses_index (test_database.TestDatabaseLayer.test_q13_explain_query_plan_uses_index)
+Verify that SQLite query planner utilizes indexes for fast lookup (Q13). ... ok
+test_transaction_rollback_on_failure (test_database.TestDatabaseLayer.test_transaction_rollback_on_failure)
+Confirm database rolls back failed transactions properly. ... Transaction rolled back due to error: UNIQUE constraint failed: products.product_id
+ok
+test_01_product_creation (test_inventory_crud.TestInventoryCRUDAndDashboard.test_01_product_creation)
+Confirm valid product creation and attribute persistence. ... ok
+test_02_product_retrieval (test_inventory_crud.TestInventoryCRUDAndDashboard.test_02_product_retrieval)
+Confirm product retrieval by primary ID and unique SKU. ... ok
+test_03_product_updates (test_inventory_crud.TestInventoryCRUDAndDashboard.test_03_product_updates)
+Confirm product modification and updated_at modification. ... ok
+test_04_product_deletion (test_inventory_crud.TestInventoryCRUDAndDashboard.test_04_product_deletion)
+Confirm product deletion removes record from database. ... ok
+test_05_duplicate_product_id_rejection (test_inventory_crud.TestInventoryCRUDAndDashboard.test_05_duplicate_product_id_rejection)
+Confirm uniqueness constraint on Product ID / SKU. ... ok
+test_06_non_negative_quantity_and_price_validation (test_inventory_crud.TestInventoryCRUDAndDashboard.test_06_non_negative_quantity_and_price_validation)
+Confirm validation prevents negative quantities or prices. ... ok
+test_07_empty_required_fields_rejection (test_inventory_crud.TestInventoryCRUDAndDashboard.test_07_empty_required_fields_rejection)
+Confirm empty strings for required attributes are rejected. ... ok
+test_08_stock_status_computation (test_inventory_crud.TestInventoryCRUDAndDashboard.test_08_stock_status_computation)
+Confirm smart calculation of Stock Status based on quantities. ... ok
+test_09_database_persistence_across_reopen (test_inventory_crud.TestInventoryCRUDAndDashboard.test_09_database_persistence_across_reopen)
+Confirm records persist across database closing and reopen (simulated restart). ... ok
+test_10_dashboard_statistics_from_actual_records (test_inventory_crud.TestInventoryCRUDAndDashboard.test_10_dashboard_statistics_from_actual_records)
+Confirm dashboard statistics reflect true SQLite aggregate calculations. ... ok
+test_11_dashboard_quick_search (test_inventory_crud.TestInventoryCRUDAndDashboard.test_11_dashboard_quick_search)
+Confirm quick-search retrieves matching items across SKU, Name, Category, Supplier. ... ok
+test_01_search_by_each_supported_field (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_01_search_by_each_supported_field)
+Confirm quick-search retrieves matching items across all four target fields. ... ok
+test_02_combined_search_filters (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_02_combined_search_filters)
+Confirm multiple filters combine using AND logic. ... ok
+test_03_empty_results_and_clearing_filters (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_03_empty_results_and_clearing_filters)
+Confirm non-matching filters return empty list and clearing restores full list. ... ok
+test_04_distinct_category_and_supplier_helpers (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_04_distinct_category_and_supplier_helpers)
+Confirm dropdown helpers return correct distinct sorted values. ... ok
+test_05_ascending_and_descending_sorting (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_05_ascending_and_descending_sorting)
+Confirm sorting works properly across all whitelisted columns in both directions. ... ok
+test_06_invalid_sort_rejection_and_whitelist (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_06_invalid_sort_rejection_and_whitelist)
+Confirm arbitrary/injected sort columns and directions are rejected. ... ok
+test_07_safe_parameterized_queries (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_07_safe_parameterized_queries)
+Confirm search strings containing quotes and SQL metacharacters execute safely. ... ok
+test_08_query_plan_index_utilization (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_08_query_plan_index_utilization)
+Verify SQLite query planner utilizes indexes for supported query patterns. ... ok
+
+----------------------------------------------------------------------
+Ran 36 tests in 3.035s
+
+OK
+======================================================================
+Summary: 36 Passed, 0 Failed, 0 Errored, 0 Skipped (100% Pass Rate)
+======================================================================

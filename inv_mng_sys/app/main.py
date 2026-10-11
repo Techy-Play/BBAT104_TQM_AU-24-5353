@@ -73,6 +73,9 @@ class IMSApplication(ctk.CTk):
         pos_y = max(0, int((screen_h - 750) / 2))
         self.geometry(f"1080x750+{pos_x}+{pos_y}")
 
+        # Ensure database tables and indexes exist
+        init_database(custom_path=self.db_path)
+
         self._route_initial_view()
 
     def _clear_all(self) -> None:
