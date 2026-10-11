@@ -72,7 +72,18 @@ pytest -v
 
 ---
 
-## 5. Running the Application
+## 5. Running the Q13 Performance Benchmark
+
+To measure and verify query optimization across 1,000, 10,000, and 50,000 products:
+
+```powershell
+python run_benchmark.py
+```
+*(Executes isolated temporary database benchmarks comparing indexed vs. unindexed queries).*
+
+---
+
+## 6. Running the Application
 
 To launch the desktop application:
 
@@ -84,7 +95,7 @@ python app/main.py
 
 ---
 
-## 6. Application Workflow & Launch Behavior
+## 7. Application Workflow & Launch Behavior
 
 ### First Launch (First-Run Setup)
 When the application starts for the first time and detects an empty `users` table:

@@ -1,4 +1,4 @@
-"""Inventory management view: product listing, quick-search, and CRUD triggers."""
+"""Inventory management view: product listing, Q13 search filters, sorting, and CRUD actions."""
 
 from __future__ import annotations
 
@@ -9,7 +9,12 @@ import customtkinter as ctk
 from app.inventory.crud import (
     Product,
     delete_product,
-    get_all_products,
+)
+from app.inventory.filters import (
+    FilterCriteria,
+    filter_products,
+    get_distinct_categories,
+    get_distinct_suppliers,
 )
 from app.ui.components import (
     CardFrame,
@@ -41,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 
 class InventoryView(ctk.CTkFrame):
-    """Full inventory management screen with table, search, and CRUD actions."""
+    """Full inventory management screen with table, Q13 search filters, sorting, and CRUD."""
 
     def __init__(
         self,
@@ -71,7 +76,7 @@ class InventoryView(ctk.CTkFrame):
 
         sub = ctk.CTkLabel(
             title_box,
-            text="Add, inspect, edit, and maintain persistent offline stock records.",
+            text="Q13: Faster Search & Retrieval • Multi-Attribute Filters • Whitelist Sorting",
             font=FONT_SMALL,
             text_color=COLOR_TEXT_MUTED,
         )
@@ -96,30 +101,108 @@ class InventoryView(ctk.CTkFrame):
         )
         self.btn_refresh.pack(side="left")
 
-        # Search Bar card
-        search_card = CardFrame(self)
-        search_card.pack(fill="x", padx=20, pady=(0, 10))
+        # Q13 Search & Filter Card
+        filter_card = CardFrame(self)
+        filter_card.pack(fill="x", padx=20, pady=(0, 10))
 
-        search_row = ctk.CTkFrame(search_card, fg_color="transparent")
-        search_row.pack(fill="x", padx=16, pady=10)
+        # Search row
+        search_row = ctk.CTkFrame(filter_card, fg_color="transparent")
+        search_row.pack(fill="x", padx=16, pady=(12, 8))
 
         self.search_entry = ctk.CTkEntry(
             search_row,
-            placeholder_text="Search by SKU, Product Name, Category, or Supplier...",
+            placeholder_text="Search across Product ID, Name, Category, or Supplier...",
             height=38,
             corner_radius=8,
             font=FONT_BODY,
         )
         self.search_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
-        self.search_entry.bind("<Return>", lambda e: self._handle_search())
+        self.search_entry.bind("<Return>", lambda e: self.apply_filters())
 
-        btn_search = PrimaryButton(search_row, text="Search", command=self._handle_search, width=100)
+        btn_search = PrimaryButton(search_row, text="Search", command=self.apply_filters, width=100)
         btn_search.pack(side="left", padx=(0, 8))
 
-        btn_clear = SecondaryButton(search_row, text="Clear", command=self._clear_search, width=80)
+        btn_clear = SecondaryButton(search_row, text="Clear All", command=self.clear_all_filters, width=90)
         btn_clear.pack(side="left")
 
-        # Result count label
+        # Filter and Sort row
+        options_row = ctk.CTkFrame(filter_card, fg_color="transparent")
+        options_row.pack(fill="x", padx=16, pady=(0, 12))
+
+        # Category Filter
+        ctk.CTkLabel(options_row, text="Category:", font=FONT_SMALL, text_color=COLOR_TEXT_MUTED).pack(side="left", padx=(0, 4))
+        self.opt_category = ctk.CTkOptionMenu(
+            options_row,
+            values=["All Categories"],
+            height=32,
+            width=140,
+            font=FONT_SMALL,
+            corner_radius=6,
+            command=lambda _val: self.apply_filters(),
+        )
+        self.opt_category.pack(side="left", padx=(0, 12))
+
+        # Supplier Filter
+        ctk.CTkLabel(options_row, text="Supplier:", font=FONT_SMALL, text_color=COLOR_TEXT_MUTED).pack(side="left", padx=(0, 4))
+        self.opt_supplier = ctk.CTkOptionMenu(
+            options_row,
+            values=["All Suppliers"],
+            height=32,
+            width=140,
+            font=FONT_SMALL,
+            corner_radius=6,
+            command=lambda _val: self.apply_filters(),
+        )
+        self.opt_supplier.pack(side="left", padx=(0, 12))
+
+        # Stock Status Filter
+        ctk.CTkLabel(options_row, text="Status:", font=FONT_SMALL, text_color=COLOR_TEXT_MUTED).pack(side="left", padx=(0, 4))
+        self.opt_status = ctk.CTkOptionMenu(
+            options_row,
+            values=["All Statuses", "In Stock", "Low Stock", "Out of Stock"],
+            height=32,
+            width=120,
+            font=FONT_SMALL,
+            corner_radius=6,
+            command=lambda _val: self.apply_filters(),
+        )
+        self.opt_status.pack(side="left", padx=(0, 16))
+
+        # Sort By Column
+        ctk.CTkLabel(options_row, text="Sort By:", font=FONT_SMALL, text_color=COLOR_TEXT_MUTED).pack(side="left", padx=(0, 4))
+        self.opt_sort_col = ctk.CTkOptionMenu(
+            options_row,
+            values=[
+                "Last Updated",
+                "Product ID",
+                "Product Name",
+                "Category",
+                "Supplier",
+                "Quantity",
+                "Price",
+                "Stock Status",
+            ],
+            height=32,
+            width=130,
+            font=FONT_SMALL,
+            corner_radius=6,
+            command=lambda _val: self.apply_filters(),
+        )
+        self.opt_sort_col.pack(side="left", padx=(0, 8))
+
+        # Sort Direction
+        self.opt_sort_dir = ctk.CTkOptionMenu(
+            options_row,
+            values=["Descending", "Ascending"],
+            height=32,
+            width=110,
+            font=FONT_SMALL,
+            corner_radius=6,
+            command=lambda _val: self.apply_filters(),
+        )
+        self.opt_sort_dir.pack(side="left")
+
+        # Result count & active filter banner
         self.count_lbl = ctk.CTkLabel(
             self,
             text="Loading records...",
@@ -167,52 +250,112 @@ class InventoryView(ctk.CTkFrame):
             )
             lbl.pack(side="left", padx=4)
 
-    def _handle_search(self) -> None:
-        query = self.search_entry.get().strip()
-        self.refresh_products(search_term=query)
+    def _populate_filter_dropdowns(self) -> None:
+        """Dynamically populate category and supplier dropdowns from SQLite records."""
+        try:
+            current_cat = self.opt_category.get()
+            current_sup = self.opt_supplier.get()
 
-    def _clear_search(self) -> None:
+            cats = ["All Categories"] + get_distinct_categories(custom_path=self.db_path)
+            sups = ["All Suppliers"] + get_distinct_suppliers(custom_path=self.db_path)
+
+            self.opt_category.configure(values=cats)
+            self.opt_supplier.configure(values=sups)
+
+            if current_cat in cats:
+                self.opt_category.set(current_cat)
+            else:
+                self.opt_category.set("All Categories")
+
+            if current_sup in sups:
+                self.opt_supplier.set(current_sup)
+            else:
+                self.opt_supplier.set("All Suppliers")
+        except Exception as exc:
+            logger.exception("Error populating filter dropdowns: %s", exc)
+
+    def apply_filters(self) -> None:
+        """Collect current filter inputs and refresh product table."""
+        search_query = self.search_entry.get().strip()
+        category = self.opt_category.get()
+        supplier = self.opt_supplier.get()
+        status = self.opt_status.get()
+        sort_col = self.opt_sort_col.get()
+        sort_dir = self.opt_sort_dir.get()
+
+        criteria = FilterCriteria(
+            search_query=search_query if search_query else None,
+            category=category if category != "All Categories" else None,
+            supplier=supplier if supplier != "All Suppliers" else None,
+            stock_status=status if status != "All Statuses" else None,
+            sort_by=sort_col,
+            sort_direction="ASC" if "asc" in sort_dir.lower() else "DESC",
+        )
+
+        self.refresh_products(criteria=criteria)
+
+    def clear_all_filters(self) -> None:
+        """Reset all search filters and sorting back to default view."""
         self.search_entry.delete(0, "end")
-        self.refresh_products(search_term="")
+        self.opt_category.set("All Categories")
+        self.opt_supplier.set("All Suppliers")
+        self.opt_status.set("All Statuses")
+        self.opt_sort_col.set("Last Updated")
+        self.opt_sort_dir.set("Descending")
+        self.refresh_products(criteria=FilterCriteria())
 
-    def refresh_products(self, search_term: Optional[str] = None) -> None:
-        """Fetch records from SQLite and render table rows."""
-        # Clear existing rows in table body
+    def refresh_products(self, criteria: Optional[FilterCriteria] = None) -> None:
+        """Execute filtered query from SQLite and re-render table rows."""
+        self._populate_filter_dropdowns()
+
         for child in self.table_body.winfo_children():
             child.destroy()
 
-        term = search_term if search_term is not None else self.search_entry.get().strip()
+        if criteria is None:
+            # Reconstruct from UI values
+            self.apply_filters()
+            return
+
         try:
-            self.products = get_all_products(search_query=term, custom_path=self.db_path)
+            self.products = filter_products(criteria, custom_path=self.db_path)
             total_count = len(self.products)
 
-            if term:
-                self.count_lbl.configure(text=f"Showing {total_count} matching product(s) for '{term}'")
-            else:
-                self.count_lbl.configure(text=f"Showing all {total_count} inventory product(s)")
+            # Build descriptive status message
+            active_filters = []
+            if criteria.search_query:
+                active_filters.append(f"Search='{criteria.search_query}'")
+            if criteria.category and criteria.category != "All Categories":
+                active_filters.append(f"Category='{criteria.category}'")
+            if criteria.supplier and criteria.supplier != "All Suppliers":
+                active_filters.append(f"Supplier='{criteria.supplier}'")
+            if criteria.stock_status and criteria.stock_status != "All Statuses":
+                active_filters.append(f"Status='{criteria.stock_status}'")
+            active_filters.append(f"Sorted by {criteria.sort_by} ({criteria.sort_direction.upper()})")
+
+            filter_desc = " • ".join(active_filters)
+            self.count_lbl.configure(text=f"Showing {total_count} product(s) ({filter_desc})")
 
             if not self.products:
                 self._render_empty_state()
                 return
 
-            # Render rows
             for idx, prod in enumerate(self.products):
                 self._render_row(prod, is_alt=(idx % 2 == 1))
 
         except Exception as exc:
-            logger.exception("Error loading products.")
-            self.count_lbl.configure(text="Error loading products from database.")
+            logger.exception("Error filtering products.")
+            self.count_lbl.configure(text="Error querying database.")
 
     def _render_empty_state(self) -> None:
         empty_box = ctk.CTkFrame(self.table_body, fg_color="transparent")
         empty_box.pack(expand=True, fill="both", pady=40)
 
-        icon = ctk.CTkLabel(empty_box, text="📦", font=(FONT_BODY[0], 42))
+        icon = ctk.CTkLabel(empty_box, text="🔍", font=(FONT_BODY[0], 42))
         icon.pack(pady=(10, 4))
 
         msg = ctk.CTkLabel(
             empty_box,
-            text="No inventory products found.",
+            text="No products match the selected search or filter criteria.",
             font=FONT_SECTION,
             text_color=COLOR_TEXT_PRIMARY,
         )
@@ -220,13 +363,13 @@ class InventoryView(ctk.CTkFrame):
 
         tip = ctk.CTkLabel(
             empty_box,
-            text="Click '+ Add Product' above to register your first inventory item.",
+            text="Try adjusting your filter options or click 'Clear All' to reset.",
             font=FONT_SMALL,
             text_color=COLOR_TEXT_MUTED,
         )
         tip.pack(pady=(4, 16))
 
-        btn = PrimaryButton(empty_box, text="Add Product Now", command=self._open_add_modal, width=160)
+        btn = SecondaryButton(empty_box, text="Clear All Filters", command=self.clear_all_filters, width=140)
         btn.pack()
 
     def _render_row(self, prod: Product, is_alt: bool) -> None:
