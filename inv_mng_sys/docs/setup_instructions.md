@@ -96,12 +96,18 @@ When the application starts for the first time and detects an empty `users` tabl
    - Password (minimum 6 characters) and Confirmation
    - "Keep Me Logged In" preference
 3. Credentials are encrypted using salted PBKDF2 (SHA-256) and saved in `database/ims.db`.
-4. The post-setup dashboard placeholder opens displaying personalized organization details.
+4. The post-setup dashboard opens displaying personalized organization details.
 
 ### Subsequent Launches (Login & Sessions)
 - **If Keep Me Logged In was enabled**: The application validates the cryptographic session token against the local database and enters directly into the dashboard.
 - **If Keep Me Logged In was disabled**: The **Sign In** screen is displayed, prompting for username and password.
-- **Log Out**: Clicking "Log Out" on the dashboard immediately clears the active session token in SQLite and returns the user to the login screen.
+- **Log Out**: Clicking "Log Out" on the top navigation bar immediately clears the active session token in SQLite and returns the user to the login screen.
+
+### Navigation & Core Views
+- **Dashboard (`📊 Dashboard`)**: Displays personalized greetings, real-time aggregate statistics (Total Products, Total Stock Qty, Low Stock Alerts, Out of Stock), Quick-Search bar, and recent inventory table.
+- **Inventory Management (`📦 Inventory`)**: Complete product management with search, "+ Add Product" modal, product details modal, edit modal, and delete confirmation dialogs.
+- **Settings (`⚙️ Settings`)**: Allows updating user and organization identity, toggling Keep Me Logged In, and changing passwords.
+
 
 ---
 
