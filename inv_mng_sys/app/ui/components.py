@@ -1,4 +1,14 @@
-"""Reusable CustomTkinter UI widgets and layout components."""
+"""Reusable CustomTkinter UI widgets and layout components.
+
+Provides standardized, accessible, and responsive components:
+- CardFrame: Container card with subtle border and rounded corners.
+- LabeledEntry: Labeled input field with placeholder and validation state.
+- PrimaryButton, SecondaryButton, DangerButton: Sized and styled action buttons.
+- MessageBanner: Dynamic status and feedback banner.
+- StatCard: Standardized metric card for dashboard analytics.
+- StatusBadge: Pill badge for product stock statuses.
+- ConfirmationModal: Accessible dialog for destructive confirmations.
+"""
 
 from __future__ import annotations
 
@@ -6,9 +16,12 @@ from typing import Any, Callable, Dict, Optional, Union
 import customtkinter as ctk
 
 from app.ui.theme import (
+    COLOR_BORDER,
     COLOR_CARD_BG,
     COLOR_DANGER,
+    COLOR_DANGER_HOVER,
     COLOR_INFO,
+    COLOR_INPUT_BG,
     COLOR_PRIMARY,
     COLOR_PRIMARY_HOVER,
     COLOR_SECONDARY,
@@ -16,9 +29,11 @@ from app.ui.theme import (
     COLOR_SUCCESS,
     COLOR_TEXT_ERROR,
     COLOR_TEXT_MUTED,
+    COLOR_TEXT_ON_PRIMARY,
     COLOR_TEXT_PRIMARY,
     COLOR_WARNING,
     FONT_BODY,
+    FONT_BODY_BOLD,
     FONT_BUTTON,
     FONT_HEADING,
     FONT_SECTION,
@@ -26,15 +41,23 @@ from app.ui.theme import (
     FONT_STAT_TITLE,
     FONT_STAT_VALUE,
     FONT_SUBTITLE,
+    HEIGHT_BUTTON_MD,
+    HEIGHT_INPUT,
+    RADIUS_BADGE,
+    RADIUS_BUTTON,
+    RADIUS_CARD,
+    RADIUS_INPUT,
 )
 
 
 class CardFrame(ctk.CTkFrame):
-    """Container frame with styled background and rounded corners."""
+    """Container frame with styled background, subtle border, and rounded corners."""
 
     def __init__(self, master, **kwargs):
         kwargs.setdefault("fg_color", COLOR_CARD_BG)
-        kwargs.setdefault("corner_radius", 12)
+        kwargs.setdefault("corner_radius", RADIUS_CARD)
+        kwargs.setdefault("border_width", 1)
+        kwargs.setdefault("border_color", COLOR_BORDER)
         super().__init__(master, **kwargs)
 
 
@@ -55,26 +78,31 @@ class LabeledEntry(ctk.CTkFrame):
         self.label = ctk.CTkLabel(
             self,
             text=label_text,
-            font=FONT_BODY,
+            font=FONT_BODY_BOLD,
             text_color=COLOR_TEXT_PRIMARY,
             anchor="w",
         )
-        self.label.pack(fill="x", padx=2, pady=(0, 4))
+        self.label.pack(fill="x", padx=1, pady=(0, 4))
 
         self.entry = ctk.CTkEntry(
             self,
             placeholder_text=placeholder,
             show="*" if is_password else "",
             width=width,
-            height=38,
-            corner_radius=8,
+            height=HEIGHT_INPUT,
+            corner_radius=RADIUS_INPUT,
+            border_width=1,
+            border_color=COLOR_BORDER,
+            fg_color=COLOR_INPUT_BG,
+            text_color=COLOR_TEXT_PRIMARY,
+            placeholder_text_color=COLOR_TEXT_MUTED,
             font=FONT_BODY,
         )
-        self.entry.pack(fill="x", padx=2, pady=(0, 2))
+        self.entry.pack(fill="x", padx=1, pady=(0, 2))
 
     def get_value(self) -> str:
         """Get the trimmed entry text."""
-        return self.entry.get()
+        return self.entry.get().strip()
 
     def set_value(self, val: str) -> None:
         """Set entry text."""
@@ -89,36 +117,39 @@ class LabeledEntry(ctk.CTkFrame):
 class PrimaryButton(ctk.CTkButton):
     """Standardized primary action button."""
 
-    def __init__(self, master, text: str, command: Optional[Callable] = None, width: int = 340, **kwargs):
+    def __init__(self, master, text: str, command: Optional[Callable] = None, width: int = 120, height: int = HEIGHT_BUTTON_MD, **kwargs):
+        kwargs.setdefault("corner_radius", RADIUS_BUTTON)
+        kwargs.setdefault("fg_color", COLOR_PRIMARY)
+        kwargs.setdefault("hover_color", COLOR_PRIMARY_HOVER)
+        kwargs.setdefault("text_color", COLOR_TEXT_ON_PRIMARY)
+        kwargs.setdefault("font", FONT_BUTTON)
         super().__init__(
             master,
             text=text,
             command=command,
             width=width,
-            height=38,
-            corner_radius=8,
-            fg_color=COLOR_PRIMARY,
-            hover_color=COLOR_PRIMARY_HOVER,
-            font=FONT_BUTTON,
+            height=height,
             **kwargs,
         )
 
 
 class SecondaryButton(ctk.CTkButton):
-    """Standardized secondary button."""
+    """Standardized secondary button with subtle neutral outline."""
 
-    def __init__(self, master, text: str, command: Optional[Callable] = None, width: int = 120, **kwargs):
+    def __init__(self, master, text: str, command: Optional[Callable] = None, width: int = 110, height: int = HEIGHT_BUTTON_MD, **kwargs):
+        kwargs.setdefault("corner_radius", RADIUS_BUTTON)
+        kwargs.setdefault("fg_color", COLOR_SECONDARY)
+        kwargs.setdefault("hover_color", COLOR_SECONDARY_HOVER)
+        kwargs.setdefault("text_color", COLOR_TEXT_PRIMARY)
+        kwargs.setdefault("border_width", 1)
+        kwargs.setdefault("border_color", COLOR_BORDER)
+        kwargs.setdefault("font", FONT_BUTTON)
         super().__init__(
             master,
             text=text,
             command=command,
             width=width,
-            height=36,
-            corner_radius=8,
-            fg_color=COLOR_SECONDARY,
-            hover_color=COLOR_SECONDARY_HOVER,
-            text_color=COLOR_TEXT_PRIMARY,
-            font=FONT_BUTTON,
+            height=height,
             **kwargs,
         )
 
@@ -126,18 +157,18 @@ class SecondaryButton(ctk.CTkButton):
 class DangerButton(ctk.CTkButton):
     """Standardized destructive action button."""
 
-    def __init__(self, master, text: str, command: Optional[Callable] = None, width: int = 120, **kwargs):
+    def __init__(self, master, text: str, command: Optional[Callable] = None, width: int = 110, height: int = HEIGHT_BUTTON_MD, **kwargs):
+        kwargs.setdefault("corner_radius", RADIUS_BUTTON)
+        kwargs.setdefault("fg_color", COLOR_DANGER)
+        kwargs.setdefault("hover_color", COLOR_DANGER_HOVER)
+        kwargs.setdefault("text_color", "#ffffff")
+        kwargs.setdefault("font", FONT_BUTTON)
         super().__init__(
             master,
             text=text,
             command=command,
             width=width,
-            height=36,
-            corner_radius=8,
-            fg_color=COLOR_DANGER,
-            hover_color=("#991b1b", "#7f1d1d"),
-            text_color="#ffffff",
-            font=FONT_BUTTON,
+            height=height,
             **kwargs,
         )
 
@@ -151,7 +182,8 @@ class MessageBanner(ctk.CTkLabel):
             text="",
             font=FONT_SMALL,
             text_color=COLOR_TEXT_ERROR,
-            wraplength=380,
+            wraplength=420,
+            justify="center",
             **kwargs,
         )
 
@@ -186,12 +218,12 @@ class StatCard(CardFrame):
 
         # Top row: Icon and title
         top_frame = ctk.CTkFrame(self, fg_color="transparent")
-        top_frame.pack(fill="x", padx=16, pady=(14, 4))
+        top_frame.pack(fill="x", padx=14, pady=(12, 2))
 
         icon_lbl = ctk.CTkLabel(
             top_frame,
             text=icon,
-            font=(FONT_BODY[0], 20),
+            font=(FONT_BODY[0], 18),
             text_color=self.accent_color,
         )
         icon_lbl.pack(side="left")
@@ -211,7 +243,7 @@ class StatCard(CardFrame):
             font=FONT_STAT_VALUE,
             text_color=COLOR_TEXT_PRIMARY,
         )
-        self.val_lbl.pack(anchor="w", padx=16, pady=(4, 14))
+        self.val_lbl.pack(anchor="w", padx=14, pady=(2, 12))
 
     def update_value(self, new_val: Union[str, int, float]) -> None:
         """Dynamically update metric value."""
@@ -231,16 +263,17 @@ class StatusBadge(ctk.CTkFrame):
 
         super().__init__(
             master,
-            corner_radius=12,
+            corner_radius=RADIUS_BADGE,
             fg_color=accent,
-            height=26,
+            height=24,
+            width=96,
             **kwargs,
         )
         self.pack_propagate(False)
 
         lbl = ctk.CTkLabel(
             self,
-            text=f"  {status}  ",
+            text=status,
             font=FONT_SMALL,
             text_color="#ffffff",
         )
@@ -261,16 +294,16 @@ class ConfirmationModal(ctk.CTkToplevel):
     ):
         super().__init__(parent)
         self.title(title)
-        self.geometry("420x220")
-        self.resizable(False, False)
+        self.geometry("440x230")
+        self.minsize(400, 200)
         self.transient(parent)
         self.grab_set()
 
         # Center on parent
         self.update_idletasks()
         try:
-            x = parent.winfo_x() + (parent.winfo_width() // 2) - 210
-            y = parent.winfo_y() + (parent.winfo_height() // 2) - 110
+            x = parent.winfo_x() + (parent.winfo_width() // 2) - 220
+            y = parent.winfo_y() + (parent.winfo_height() // 2) - 115
             self.geometry(f"+{max(0, x)}+{max(0, y)}")
         except Exception:
             pass
@@ -279,22 +312,22 @@ class ConfirmationModal(ctk.CTkToplevel):
         card.pack(fill="both", expand=True, padx=16, pady=16)
 
         title_lbl = ctk.CTkLabel(card, text=title, font=FONT_HEADING, text_color=COLOR_TEXT_PRIMARY)
-        title_lbl.pack(anchor="w", padx=16, pady=(16, 8))
+        title_lbl.pack(anchor="w", padx=16, pady=(16, 6))
 
         msg_lbl = ctk.CTkLabel(
             card,
             text=message,
             font=FONT_BODY,
             text_color=COLOR_TEXT_MUTED,
-            wraplength=350,
+            wraplength=380,
             justify="left",
         )
-        msg_lbl.pack(anchor="w", padx=16, pady=(0, 20))
+        msg_lbl.pack(anchor="w", padx=16, pady=(0, 18))
 
         btn_row = ctk.CTkFrame(card, fg_color="transparent")
         btn_row.pack(fill="x", padx=16, pady=(0, 16))
 
-        btn_cancel = SecondaryButton(btn_row, text="Cancel", command=self.destroy, width=100)
+        btn_cancel = SecondaryButton(btn_row, text="Cancel", command=self.destroy, width=95)
         btn_cancel.pack(side="right", padx=(8, 0))
 
         def _on_confirm():
@@ -302,7 +335,7 @@ class ConfirmationModal(ctk.CTkToplevel):
             confirm_callback()
 
         if danger:
-            btn_confirm = DangerButton(btn_row, text=confirm_text, command=_on_confirm, width=120)
+            btn_confirm = DangerButton(btn_row, text=confirm_text, command=_on_confirm, width=125)
         else:
-            btn_confirm = PrimaryButton(btn_row, text=confirm_text, command=_on_confirm, width=120)
+            btn_confirm = PrimaryButton(btn_row, text=confirm_text, command=_on_confirm, width=125)
         btn_confirm.pack(side="right")

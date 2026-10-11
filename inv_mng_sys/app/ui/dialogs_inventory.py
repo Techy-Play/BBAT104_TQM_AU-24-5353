@@ -21,6 +21,9 @@ from app.ui.components import (
 )
 from app.ui.theme import (
     COLOR_CARD_BG,
+    COLOR_PRIMARY,
+    COLOR_SECONDARY,
+    COLOR_SECONDARY_HOVER,
     COLOR_TEXT_MUTED,
     COLOR_TEXT_PRIMARY,
     FONT_BODY,
@@ -159,9 +162,16 @@ class ProductFormModal(ctk.CTkToplevel):
         self.opt_status = ctk.CTkOptionMenu(
             status_frame,
             values=["Auto (Recommended)", "In Stock", "Low Stock", "Out of Stock"],
-            height=38,
+            height=36,
             font=FONT_BODY,
-            corner_radius=8,
+            corner_radius=6,
+            fg_color=COLOR_SECONDARY,
+            button_color=COLOR_SECONDARY_HOVER,
+            button_hover_color=COLOR_PRIMARY,
+            text_color=COLOR_TEXT_PRIMARY,
+            dropdown_fg_color=COLOR_CARD_BG,
+            dropdown_text_color=COLOR_TEXT_PRIMARY,
+            dropdown_hover_color=COLOR_PRIMARY,
         )
         self.opt_status.pack(fill="x")
 
@@ -245,7 +255,8 @@ class ProductDetailsModal(ctk.CTkToplevel):
         self.product = product
         self.title(f"Product Details — {product.product_id}")
         self.geometry("480x520")
-        self.resizable(False, False)
+        self.minsize(460, 500)
+        self.resizable(True, True)
         self.transient(parent)
         self.grab_set()
 
@@ -265,7 +276,14 @@ class ProductDetailsModal(ctk.CTkToplevel):
         top_row = ctk.CTkFrame(card, fg_color="transparent")
         top_row.pack(fill="x", padx=20, pady=(20, 8))
 
-        name_lbl = ctk.CTkLabel(top_row, text=product.name, font=FONT_HEADING, text_color=COLOR_TEXT_PRIMARY)
+        name_lbl = ctk.CTkLabel(
+            top_row,
+            text=product.name,
+            font=FONT_HEADING,
+            text_color=COLOR_TEXT_PRIMARY,
+            wraplength=310,
+            justify="left",
+        )
         name_lbl.pack(side="left")
 
         badge = StatusBadge(top_row, status=product.stock_status)

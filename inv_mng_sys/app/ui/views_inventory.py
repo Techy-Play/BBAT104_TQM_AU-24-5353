@@ -26,10 +26,13 @@ from app.ui.components import (
 )
 from app.ui.dialogs_inventory import ProductDetailsModal, ProductFormModal
 from app.ui.theme import (
+    COLOR_BORDER,
     COLOR_CARD_BG,
     COLOR_PRIMARY,
     COLOR_ROW_ALT,
     COLOR_SECONDARY,
+    COLOR_SECONDARY_HOVER,
+    COLOR_TABLE_HEADER,
     COLOR_TEXT_MUTED,
     COLOR_TEXT_PRIMARY,
     COLOR_WARNING,
@@ -135,12 +138,19 @@ class InventoryView(ctk.CTkFrame):
             options_row,
             values=["All Categories"],
             height=32,
-            width=140,
+            width=135,
             font=FONT_SMALL,
             corner_radius=6,
+            fg_color=COLOR_SECONDARY,
+            button_color=COLOR_SECONDARY_HOVER,
+            button_hover_color=COLOR_PRIMARY,
+            text_color=COLOR_TEXT_PRIMARY,
+            dropdown_fg_color=COLOR_CARD_BG,
+            dropdown_text_color=COLOR_TEXT_PRIMARY,
+            dropdown_hover_color=COLOR_PRIMARY,
             command=lambda _val: self.apply_filters(),
         )
-        self.opt_category.pack(side="left", padx=(0, 12))
+        self.opt_category.pack(side="left", padx=(0, 10))
 
         # Supplier Filter
         ctk.CTkLabel(options_row, text="Supplier:", font=FONT_SMALL, text_color=COLOR_TEXT_MUTED).pack(side="left", padx=(0, 4))
@@ -148,12 +158,19 @@ class InventoryView(ctk.CTkFrame):
             options_row,
             values=["All Suppliers"],
             height=32,
-            width=140,
+            width=135,
             font=FONT_SMALL,
             corner_radius=6,
+            fg_color=COLOR_SECONDARY,
+            button_color=COLOR_SECONDARY_HOVER,
+            button_hover_color=COLOR_PRIMARY,
+            text_color=COLOR_TEXT_PRIMARY,
+            dropdown_fg_color=COLOR_CARD_BG,
+            dropdown_text_color=COLOR_TEXT_PRIMARY,
+            dropdown_hover_color=COLOR_PRIMARY,
             command=lambda _val: self.apply_filters(),
         )
-        self.opt_supplier.pack(side="left", padx=(0, 12))
+        self.opt_supplier.pack(side="left", padx=(0, 10))
 
         # Stock Status Filter
         ctk.CTkLabel(options_row, text="Status:", font=FONT_SMALL, text_color=COLOR_TEXT_MUTED).pack(side="left", padx=(0, 4))
@@ -161,12 +178,19 @@ class InventoryView(ctk.CTkFrame):
             options_row,
             values=["All Statuses", "In Stock", "Low Stock", "Out of Stock"],
             height=32,
-            width=120,
+            width=115,
             font=FONT_SMALL,
             corner_radius=6,
+            fg_color=COLOR_SECONDARY,
+            button_color=COLOR_SECONDARY_HOVER,
+            button_hover_color=COLOR_PRIMARY,
+            text_color=COLOR_TEXT_PRIMARY,
+            dropdown_fg_color=COLOR_CARD_BG,
+            dropdown_text_color=COLOR_TEXT_PRIMARY,
+            dropdown_hover_color=COLOR_PRIMARY,
             command=lambda _val: self.apply_filters(),
         )
-        self.opt_status.pack(side="left", padx=(0, 16))
+        self.opt_status.pack(side="left", padx=(0, 12))
 
         # Sort By Column
         ctk.CTkLabel(options_row, text="Sort By:", font=FONT_SMALL, text_color=COLOR_TEXT_MUTED).pack(side="left", padx=(0, 4))
@@ -183,9 +207,16 @@ class InventoryView(ctk.CTkFrame):
                 "Stock Status",
             ],
             height=32,
-            width=130,
+            width=125,
             font=FONT_SMALL,
             corner_radius=6,
+            fg_color=COLOR_SECONDARY,
+            button_color=COLOR_SECONDARY_HOVER,
+            button_hover_color=COLOR_PRIMARY,
+            text_color=COLOR_TEXT_PRIMARY,
+            dropdown_fg_color=COLOR_CARD_BG,
+            dropdown_text_color=COLOR_TEXT_PRIMARY,
+            dropdown_hover_color=COLOR_PRIMARY,
             command=lambda _val: self.apply_filters(),
         )
         self.opt_sort_col.pack(side="left", padx=(0, 8))
@@ -195,9 +226,16 @@ class InventoryView(ctk.CTkFrame):
             options_row,
             values=["Descending", "Ascending"],
             height=32,
-            width=110,
+            width=105,
             font=FONT_SMALL,
             corner_radius=6,
+            fg_color=COLOR_SECONDARY,
+            button_color=COLOR_SECONDARY_HOVER,
+            button_hover_color=COLOR_PRIMARY,
+            text_color=COLOR_TEXT_PRIMARY,
+            dropdown_fg_color=COLOR_CARD_BG,
+            dropdown_text_color=COLOR_TEXT_PRIMARY,
+            dropdown_hover_color=COLOR_PRIMARY,
             command=lambda _val: self.apply_filters(),
         )
         self.opt_sort_dir.pack(side="left")
@@ -224,7 +262,7 @@ class InventoryView(ctk.CTkFrame):
         self.table_body.pack(fill="both", expand=True, padx=4, pady=4)
 
     def _build_table_header(self) -> None:
-        header_frame = ctk.CTkFrame(self.table_container, fg_color=("gray85", "gray20"), height=36, corner_radius=6)
+        header_frame = ctk.CTkFrame(self.table_container, fg_color=COLOR_TABLE_HEADER, height=36, corner_radius=6)
         header_frame.pack(fill="x", padx=8, pady=(8, 4))
         header_frame.pack_propagate(False)
 
@@ -414,38 +452,29 @@ class InventoryView(ctk.CTkFrame):
         act_box.pack(side="left", padx=4)
         act_box.pack_propagate(False)
 
-        btn_view = ctk.CTkButton(
+        btn_view = SecondaryButton(
             act_box,
             text="👁️",
-            width=32,
+            width=34,
             height=30,
-            corner_radius=6,
-            fg_color=COLOR_SECONDARY,
-            hover_color=("gray75", "gray35"),
             command=lambda p=prod: self._view_details(p),
         )
         btn_view.pack(side="left", padx=2)
 
-        btn_edit = ctk.CTkButton(
+        btn_edit = PrimaryButton(
             act_box,
             text="✏️",
-            width=32,
+            width=34,
             height=30,
-            corner_radius=6,
-            fg_color=COLOR_PRIMARY,
-            hover_color=COLOR_PRIMARY[1],
             command=lambda p=prod: self._edit_product(p),
         )
         btn_edit.pack(side="left", padx=2)
 
-        btn_del = ctk.CTkButton(
+        btn_del = DangerButton(
             act_box,
             text="🗑️",
-            width=32,
+            width=34,
             height=30,
-            corner_radius=6,
-            fg_color=("gray70", "gray30"),
-            hover_color=("#dc2626", "#dc2626"),
             command=lambda p=prod: self._confirm_delete(p),
         )
         btn_del.pack(side="left", padx=2)

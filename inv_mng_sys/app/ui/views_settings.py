@@ -18,6 +18,8 @@ from app.ui.components import (
 from app.ui.theme import (
     COLOR_CARD_BG,
     COLOR_PRIMARY,
+    COLOR_SECONDARY,
+    COLOR_SECONDARY_HOVER,
     COLOR_TEXT_MUTED,
     COLOR_TEXT_PRIMARY,
     FONT_BODY,
@@ -139,9 +141,48 @@ class SettingsView(ctk.CTkScrollableFrame):
         )
         btn_save_pref.pack(anchor="w", padx=20, pady=(4, 20))
 
+        # Appearance & Theme Settings Card
+        card_theme = CardFrame(container)
+        card_theme.pack(fill="x", pady=(0, 15))
+
+        t_title = ctk.CTkLabel(card_theme, text="Appearance & Visual Theme", font=FONT_SECTION, text_color=COLOR_TEXT_PRIMARY)
+        t_title.pack(anchor="w", padx=20, pady=(18, 6))
+
+        t_desc = ctk.CTkLabel(
+            card_theme,
+            text="Switch between System Default, Dark Mode, or Light Mode desktop styling.",
+            font=FONT_SMALL,
+            text_color=COLOR_TEXT_MUTED,
+        )
+        t_desc.pack(anchor="w", padx=20, pady=(0, 12))
+
+        t_box = ctk.CTkFrame(card_theme, fg_color="transparent")
+        t_box.pack(fill="x", padx=20, pady=(0, 18))
+
+        ctk.CTkLabel(t_box, text="Theme Mode:", font=FONT_BODY, text_color=COLOR_TEXT_PRIMARY, width=120, anchor="w").pack(side="left")
+
+        current_mode = ctk.get_appearance_mode()
+        self.opt_theme = ctk.CTkOptionMenu(
+            t_box,
+            values=["System", "Dark", "Light"],
+            command=self._handle_theme_change,
+            width=140,
+            height=32,
+            corner_radius=6,
+            fg_color=COLOR_SECONDARY,
+            button_color=COLOR_SECONDARY_HOVER,
+            button_hover_color=COLOR_PRIMARY,
+            text_color=COLOR_TEXT_PRIMARY,
+            dropdown_fg_color=COLOR_CARD_BG,
+            dropdown_text_color=COLOR_TEXT_PRIMARY,
+            dropdown_hover_color=COLOR_PRIMARY,
+        )
+        self.opt_theme.set(current_mode.capitalize() if current_mode else "System")
+        self.opt_theme.pack(side="left")
+
         # Security Card (Password Change)
         card_sec = CardFrame(container)
-        card_sec.pack(fill="x", pady=(0, 20))
+        card_sec.pack(fill="x", pady=(0, 15))
 
         sec_title = ctk.CTkLabel(card_sec, text="Security & Password", font=FONT_SECTION, text_color=COLOR_TEXT_PRIMARY)
         sec_title.pack(anchor="w", padx=20, pady=(18, 12))
@@ -180,6 +221,28 @@ class SettingsView(ctk.CTkScrollableFrame):
             width=180,
         )
         btn_change_pwd.pack(anchor="w", padx=20, pady=(8, 20))
+
+        # System & Quality Info Card
+        card_info = CardFrame(container)
+        card_info.pack(fill="x", pady=(0, 20))
+
+        info_title = ctk.CTkLabel(card_info, text="System & Quality Information", font=FONT_SECTION, text_color=COLOR_TEXT_PRIMARY)
+        info_title.pack(anchor="w", padx=20, pady=(18, 10))
+
+        infos = [
+            ("Course Project", "BBAT104 Fundamentals of Total Quality Management"),
+            ("Assigned Quality Goal", "Q13 — Faster Search & Retrieval"),
+            ("Operation Mode", "Fully Offline Desktop Application"),
+            ("Database Engine", "SQLite3 (Persistent local storage, WAL mode, B-Tree indexes)"),
+            ("Presentation Layer", "CustomTkinter 5.2.2 (Themeable responsive desktop GUI)"),
+        ]
+        for k, v in infos:
+            i_row = ctk.CTkFrame(card_info, fg_color="transparent")
+            i_row.pack(fill="x", padx=20, pady=4)
+            ctk.CTkLabel(i_row, text=f"{k}:", font=FONT_BODY, text_color=COLOR_TEXT_MUTED, width=170, anchor="w").pack(side="left")
+            ctk.CTkLabel(i_row, text=v, font=FONT_BODY, text_color=COLOR_TEXT_PRIMARY, anchor="w").pack(side="left")
+
+        ctk.CTkLabel(card_info, text="").pack(pady=4)
 
     def _handle_save_profile(self) -> None:
         self.profile_banner.clear()
@@ -232,3 +295,8 @@ class SettingsView(ctk.CTkScrollableFrame):
         except Exception as exc:
             logger.exception("Error changing password.")
             self.sec_banner.show_error(f"Failed to change password: {exc}")
+
+    def _handle_theme_change(self, mode: str) -> None:
+        """Dynamically toggle appearance mode across CustomTkinter UI."""
+        logger.info("Switching appearance mode to: %s", mode)
+        ctk.set_appearance_mode(mode.lower())

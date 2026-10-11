@@ -120,6 +120,10 @@ class FirstRunSetupFrame(ctk.CTkScrollableFrame):
         )
         self.entry_confirm.pack(pady=6)
 
+        # Keyboard accessibility: bind Enter key to submit
+        self.entry_pwd.entry.bind("<Return>", lambda _e: self._handle_setup())
+        self.entry_confirm.entry.bind("<Return>", lambda _e: self._handle_setup())
+
         # Keep Me Logged In checkbox
         self.chk_keep_logged_in = ctk.CTkCheckBox(
             container,
@@ -129,7 +133,7 @@ class FirstRunSetupFrame(ctk.CTkScrollableFrame):
             checkbox_height=20,
             corner_radius=4,
         )
-        self.chk_keep_logged_in.pack(pady=12, padx=25, anchor="w")
+        self.chk_keep_logged_in.pack(pady=12, padx=40, anchor="w")
 
         # Feedback banner
         self.banner = MessageBanner(container)

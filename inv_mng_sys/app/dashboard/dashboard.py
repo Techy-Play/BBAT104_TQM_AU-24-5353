@@ -38,6 +38,7 @@ from app.ui.theme import (
     COLOR_ROW_ALT,
     COLOR_SECONDARY,
     COLOR_SUCCESS,
+    COLOR_TABLE_HEADER,
     COLOR_TEXT_MUTED,
     COLOR_TEXT_PRIMARY,
     COLOR_WARNING,
@@ -118,6 +119,8 @@ class DashboardFrame(ctk.CTkScrollableFrame):
             text=f"📦 {self.user_session.organization_name} • Offline Mode",
             font=FONT_SUBTITLE,
             text_color=COLOR_TEXT_MUTED,
+            wraplength=480,
+            justify="left",
         )
         self.org_label.pack(anchor="w", pady=(4, 0))
 
@@ -209,7 +212,7 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         self.table_body.pack(fill="both", expand=True, padx=8, pady=(0, 16))
 
     def _build_table_header(self) -> None:
-        header_frame = ctk.CTkFrame(self.table_card, fg_color=("gray85", "gray20"), height=36, corner_radius=6)
+        header_frame = ctk.CTkFrame(self.table_card, fg_color=COLOR_TABLE_HEADER, height=36, corner_radius=6)
         header_frame.pack(fill="x", padx=16, pady=(0, 4))
         header_frame.pack_propagate(False)
 
@@ -304,17 +307,14 @@ class DashboardFrame(ctk.CTkScrollableFrame):
                 act_box.pack(side="left", padx=4)
                 act_box.pack_propagate(False)
 
-                btn_view = ctk.CTkButton(
+                btn_view = SecondaryButton(
                     act_box,
                     text="View",
-                    width=60,
+                    width=64,
                     height=28,
-                    corner_radius=6,
-                    fg_color=COLOR_SECONDARY,
-                    hover_color=("gray75", "gray35"),
                     command=lambda p=prod: ProductDetailsModal(parent=self.winfo_toplevel(), product=p),
                 )
-                btn_view.pack(side="left", padx=10, pady=6)
+                btn_view.pack(side="left", padx=8, pady=6)
 
         except Exception as exc:
             logger.exception("Error rendering dashboard table.")

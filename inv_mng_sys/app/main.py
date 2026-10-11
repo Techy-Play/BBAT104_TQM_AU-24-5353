@@ -31,6 +31,7 @@ from app.ui.theme import (
     COLOR_DANGER,
     COLOR_PRIMARY,
     COLOR_SECONDARY,
+    COLOR_SECONDARY_HOVER,
     COLOR_TEXT_MUTED,
     COLOR_TEXT_PRIMARY,
     FONT_BODY,
@@ -139,18 +140,21 @@ class IMSApplication(ctk.CTk):
         self.show_dashboard_view()
 
     def _build_nav_bar(self) -> None:
-        """Construct top persistent navigation header bar."""
-        self.nav_bar = CardFrame(self, height=64)
-        self.nav_bar.pack(fill="x", padx=20, pady=(15, 0))
+        """Construct top persistent navigation header bar with responsive layout."""
+        self.nav_bar = CardFrame(self, height=58)
+        self.nav_bar.pack(fill="x", padx=20, pady=(12, 0))
         self.nav_bar.pack_propagate(False)
 
-        # Left: Brand / Org Identity
+        # Left: Brand / Org Identity (truncated safely if extra long)
         left_box = ctk.CTkFrame(self.nav_bar, fg_color="transparent")
         left_box.pack(side="left", padx=16)
 
+        org_name = self.current_session.organization_name
+        disp_org = org_name if len(org_name) <= 24 else org_name[:22] + "…"
+
         self.brand_label = ctk.CTkLabel(
             left_box,
-            text=f"📦 {self.current_session.organization_name}",
+            text=f"📦 {disp_org}",
             font=FONT_HEADING,
             text_color=COLOR_TEXT_PRIMARY,
         )
@@ -158,16 +162,17 @@ class IMSApplication(ctk.CTk):
 
         # Center: Navigation items
         nav_buttons = ctk.CTkFrame(self.nav_bar, fg_color="transparent")
-        nav_buttons.pack(side="left", padx=(30, 0))
+        nav_buttons.pack(side="left", padx=(24, 0))
 
         self.btn_nav_dash = ctk.CTkButton(
             nav_buttons,
             text="📊 Dashboard",
             command=self.show_dashboard_view,
-            width=110,
+            width=112,
             height=34,
             corner_radius=6,
             font=FONT_BUTTON,
+            hover_color=COLOR_SECONDARY_HOVER,
         )
         self.btn_nav_dash.pack(side="left", padx=4)
 
@@ -175,10 +180,11 @@ class IMSApplication(ctk.CTk):
             nav_buttons,
             text="📦 Inventory",
             command=self.show_inventory_view,
-            width=110,
+            width=112,
             height=34,
             corner_radius=6,
             font=FONT_BUTTON,
+            hover_color=COLOR_SECONDARY_HOVER,
         )
         self.btn_nav_inv.pack(side="left", padx=4)
 
@@ -190,6 +196,7 @@ class IMSApplication(ctk.CTk):
             height=34,
             corner_radius=6,
             font=FONT_BUTTON,
+            hover_color=COLOR_SECONDARY_HOVER,
         )
         self.btn_nav_settings.pack(side="left", padx=4)
 
@@ -197,19 +204,22 @@ class IMSApplication(ctk.CTk):
         right_box = ctk.CTkFrame(self.nav_bar, fg_color="transparent")
         right_box.pack(side="right", padx=16)
 
+        user_name = self.current_session.full_name
+        disp_user = user_name if len(user_name) <= 20 else user_name[:18] + "…"
+
         self.user_tag = ctk.CTkLabel(
             right_box,
-            text=f"👤 {self.current_session.full_name}",
+            text=f"👤 {disp_user}",
             font=FONT_BODY,
             text_color=COLOR_TEXT_MUTED,
         )
-        self.user_tag.pack(side="left", padx=(0, 16))
+        self.user_tag.pack(side="left", padx=(0, 14))
 
         btn_logout = DangerButton(
             right_box,
             text="Log Out",
             command=self.handle_logout,
-            width=90,
+            width=85,
         )
         btn_logout.pack(side="right")
 
@@ -224,7 +234,7 @@ class IMSApplication(ctk.CTk):
             if key == active:
                 btn.configure(fg_color=COLOR_PRIMARY, text_color="#ffffff")
             else:
-                btn.configure(fg_color="transparent", text_color=COLOR_TEXT_PRIMARY)
+                btn.configure(fg_color="transparent", text_color=COLOR_TEXT_PRIMARY, hover_color=COLOR_SECONDARY_HOVER)
 
     def _clear_content_view(self) -> None:
         if self.current_view is not None:
@@ -271,9 +281,13 @@ class IMSApplication(ctk.CTk):
         """Update active session attributes across the application."""
         self.current_session = updated_session
         if self.brand_label:
-            self.brand_label.configure(text=f"📦 {updated_session.organization_name}")
+            org = updated_session.organization_name
+            disp_org = org if len(org) <= 24 else org[:22] + "…"
+            self.brand_label.configure(text=f"📦 {disp_org}")
         if self.user_tag:
-            self.user_tag.configure(text=f"👤 {updated_session.full_name}")
+            usr = updated_session.full_name
+            disp_usr = usr if len(usr) <= 20 else usr[:18] + "…"
+            self.user_tag.configure(text=f"👤 {disp_usr}")
 
     def handle_logout(self) -> None:
         """Invalidate session and return to login."""
