@@ -18,8 +18,10 @@ from app.ui.components import (
     PrimaryButton,
     SecondaryButton,
     StatusBadge,
+    setup_form_keyboard_navigation,
 )
 from app.ui.theme import (
+    COLOR_BORDER,
     COLOR_CARD_BG,
     COLOR_PRIMARY,
     COLOR_SECONDARY,
@@ -27,6 +29,7 @@ from app.ui.theme import (
     COLOR_TEXT_MUTED,
     COLOR_TEXT_PRIMARY,
     FONT_BODY,
+    FONT_BODY_BOLD,
     FONT_BUTTON,
     FONT_HEADING,
     FONT_SECTION,
@@ -55,16 +58,17 @@ class ProductFormModal(ctk.CTkToplevel):
 
         title_text = "Edit Inventory Product" if self.is_edit else "Add New Inventory Product"
         self.title(title_text)
-        self.geometry("520x640")
-        self.minsize(480, 600)
+        self.geometry("640x510")
+        self.minsize(580, 470)
+        self.resizable(True, True)
         self.transient(parent)
         self.grab_set()
 
         # Center on parent window
         self.update_idletasks()
         try:
-            x = parent.winfo_x() + (parent.winfo_width() // 2) - 260
-            y = parent.winfo_y() + (parent.winfo_height() // 2) - 320
+            x = parent.winfo_x() + (parent.winfo_width() // 2) - 320
+            y = parent.winfo_y() + (parent.winfo_height() // 2) - 255
             self.geometry(f"+{max(0, x)}+{max(0, y)}")
         except Exception:
             pass
@@ -72,88 +76,106 @@ class ProductFormModal(ctk.CTkToplevel):
         self._build_ui(title_text)
 
     def _build_ui(self, title_text: str) -> None:
-        scroll_card = ctk.CTkScrollableFrame(self, fg_color="transparent")
-        scroll_card.pack(fill="both", expand=True, padx=20, pady=20)
+        # Direct CardFrame without CTkScrollableFrame to eliminate scrolling completely
+        card = CardFrame(self)
+        card.pack(fill="both", expand=True, padx=16, pady=16)
 
-        card = CardFrame(scroll_card)
-        card.pack(fill="both", expand=True, padx=4, pady=4)
+        # Header Row
+        header_frame = ctk.CTkFrame(card, fg_color="transparent")
+        header_frame.pack(fill="x", padx=20, pady=(16, 4))
 
-        # Header
-        header = ctk.CTkLabel(card, text=title_text, font=FONT_HEADING, text_color=COLOR_TEXT_PRIMARY)
-        header.pack(anchor="w", padx=24, pady=(20, 4))
+        title_icon = "✏️ " if self.is_edit else "➕ "
+        header = ctk.CTkLabel(
+            header_frame,
+            text=f"{title_icon}{title_text}",
+            font=FONT_HEADING,
+            text_color=COLOR_TEXT_PRIMARY,
+        )
+        header.pack(side="left")
+
+        if self.is_edit and self.product:
+            sku_badge = ctk.CTkLabel(
+                header_frame,
+                text=f"SKU: {self.product.product_id}",
+                font=FONT_SMALL,
+                text_color=COLOR_PRIMARY[1] if isinstance(COLOR_PRIMARY, tuple) else COLOR_PRIMARY,
+            )
+            sku_badge.pack(side="right")
 
         sub = ctk.CTkLabel(
             card,
-            text="Enter product details. All fields are stored persistently in SQLite."
+            text="Enter product attributes below. Press Tab to switch fields, Enter to save."
             if not self.is_edit
-            else f"Modifying details for SKU: {self.product.product_id}",
+            else f"Modifying attributes for '{self.product.name}'. Press Enter to save.",
             font=FONT_SMALL,
             text_color=COLOR_TEXT_MUTED,
         )
-        sub.pack(anchor="w", padx=24, pady=(0, 16))
+        sub.pack(anchor="w", padx=20, pady=(0, 10))
 
-        # Fields
+        # 2-Column Responsive Form Grid (All fields visible at once without scrolling)
+        form_grid = ctk.CTkFrame(card, fg_color="transparent")
+        form_grid.pack(fill="x", padx=20, pady=(0, 4))
+        form_grid.grid_columnconfigure((0, 1), weight=1, uniform="form_col")
+
+        # Row 0: SKU and Product Name
         self.entry_sku = LabeledEntry(
-            card,
+            form_grid,
             label_text="Product ID / SKU *",
-            placeholder="e.g. SKU-1001 or BAR-902",
-            width=400,
+            placeholder="e.g. SKU-1001",
+            width=260,
         )
-        self.entry_sku.pack(padx=24, pady=5)
+        self.entry_sku.grid(row=0, column=0, sticky="ew", padx=(0, 8), pady=4)
 
         self.entry_name = LabeledEntry(
-            card,
+            form_grid,
             label_text="Product Name *",
             placeholder="e.g. Wireless Barcode Scanner",
-            width=400,
+            width=260,
         )
-        self.entry_name.pack(padx=24, pady=5)
+        self.entry_name.grid(row=0, column=1, sticky="ew", padx=(8, 0), pady=4)
 
+        # Row 1: Category and Supplier
         self.entry_category = LabeledEntry(
-            card,
+            form_grid,
             label_text="Category *",
-            placeholder="e.g. Electronics, Tools, Hardware",
-            width=400,
+            placeholder="e.g. Electronics, Tools",
+            width=260,
         )
-        self.entry_category.pack(padx=24, pady=5)
+        self.entry_category.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=4)
 
         self.entry_supplier = LabeledEntry(
-            card,
+            form_grid,
             label_text="Supplier *",
-            placeholder="e.g. Global Tech Supplies Ltd.",
-            width=400,
+            placeholder="e.g. Global Tech Supplies",
+            width=260,
         )
-        self.entry_supplier.pack(padx=24, pady=5)
+        self.entry_supplier.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=4)
 
-        # Numeric row: Quantity and Price side-by-side
-        num_frame = ctk.CTkFrame(card, fg_color="transparent")
-        num_frame.pack(fill="x", padx=24, pady=5)
-        num_frame.grid_columnconfigure((0, 1), weight=1)
-
+        # Row 2: Quantity and Unit Price
         self.entry_qty = LabeledEntry(
-            num_frame,
-            label_text="Quantity *",
+            form_grid,
+            label_text="Quantity (units) *",
             placeholder="e.g. 50",
-            width=180,
+            width=260,
         )
-        self.entry_qty.grid(row=0, column=0, sticky="ew", padx=(0, 8))
+        self.entry_qty.grid(row=2, column=0, sticky="ew", padx=(0, 8), pady=4)
 
         self.entry_price = LabeledEntry(
-            num_frame,
+            form_grid,
             label_text="Unit Price ($) *",
             placeholder="e.g. 29.99",
-            width=180,
+            width=260,
         )
-        self.entry_price.grid(row=0, column=1, sticky="ew", padx=(8, 0))
+        self.entry_price.grid(row=2, column=1, sticky="ew", padx=(8, 0), pady=4)
 
-        # Stock Status option menu
-        status_frame = ctk.CTkFrame(card, fg_color="transparent")
-        status_frame.pack(fill="x", padx=24, pady=5)
+        # Row 3: Stock Status and Help Rule Box
+        status_frame = ctk.CTkFrame(form_grid, fg_color="transparent")
+        status_frame.grid(row=3, column=0, sticky="ew", padx=(0, 8), pady=4)
 
         status_lbl = ctk.CTkLabel(
             status_frame,
             text="Stock Status (Auto-calculated if omitted)",
-            font=FONT_BODY,
+            font=FONT_BODY_BOLD,
             text_color=COLOR_TEXT_PRIMARY,
             anchor="w",
         )
@@ -162,7 +184,7 @@ class ProductFormModal(ctk.CTkToplevel):
         self.opt_status = ctk.CTkOptionMenu(
             status_frame,
             values=["Auto (Recommended)", "In Stock", "Low Stock", "Out of Stock"],
-            height=36,
+            height=34,
             font=FONT_BODY,
             corner_radius=6,
             fg_color=COLOR_SECONDARY,
@@ -175,19 +197,52 @@ class ProductFormModal(ctk.CTkToplevel):
         )
         self.opt_status.pack(fill="x")
 
+        # Auto rule callout box
+        rule_frame = ctk.CTkFrame(form_grid, fg_color="transparent")
+        rule_frame.grid(row=3, column=1, sticky="ew", padx=(8, 0), pady=4)
+
+        rule_lbl = ctk.CTkLabel(
+            rule_frame,
+            text="Threshold Status Rule (Q13 Automation)",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_TEXT_MUTED,
+            anchor="w",
+        )
+        rule_lbl.pack(fill="x", pady=(0, 4))
+
+        rule_box = ctk.CTkFrame(rule_frame, fg_color=COLOR_SECONDARY, height=34, corner_radius=6)
+        rule_box.pack(fill="x")
+        rule_box.pack_propagate(False)
+
+        rule_text = ctk.CTkLabel(
+            rule_box,
+            text="Qty ≤ 10 → Low Stock  |  Qty = 0 → Out of Stock",
+            font=FONT_SMALL,
+            text_color=COLOR_TEXT_MUTED,
+        )
+        rule_text.pack(expand=True)
+
         # Feedback banner
         self.banner = MessageBanner(card)
-        self.banner.pack(padx=24, pady=(10, 4))
+        self.banner.pack(fill="x", padx=20, pady=(4, 2))
 
-        # Buttons
+        # Permanent, Non-scrolling Action Footer
         btn_row = ctk.CTkFrame(card, fg_color="transparent")
-        btn_row.pack(fill="x", padx=24, pady=(12, 24))
+        btn_row.pack(fill="x", side="bottom", padx=20, pady=(6, 16))
 
-        btn_cancel = SecondaryButton(btn_row, text="Cancel", command=self.destroy, width=120)
-        btn_cancel.pack(side="right", padx=(10, 0))
+        hint_kb = ctk.CTkLabel(
+            btn_row,
+            text="⌨️ Tab: Next field • Shift+Tab: Prev • Enter: Save • Esc: Cancel",
+            font=FONT_SMALL,
+            text_color=COLOR_TEXT_MUTED,
+        )
+        hint_kb.pack(side="left")
+
+        self.btn_cancel = SecondaryButton(btn_row, text="Cancel", command=self.destroy, width=100, height=34)
+        self.btn_cancel.pack(side="right", padx=(10, 0))
 
         btn_save_text = "Save Changes" if self.is_edit else "Add Product"
-        self.btn_save = PrimaryButton(btn_row, text=btn_save_text, command=self._handle_save, width=160)
+        self.btn_save = PrimaryButton(btn_row, text=btn_save_text, command=self._handle_save, width=140, height=34)
         self.btn_save.pack(side="right")
 
         # Pre-populate if editing
@@ -200,6 +255,41 @@ class ProductFormModal(ctk.CTkToplevel):
             self.entry_price.set_value(f"{self.product.price:.2f}")
             if self.product.stock_status in ("In Stock", "Low Stock", "Out of Stock"):
                 self.opt_status.set(self.product.stock_status)
+
+        # Fast keyboard navigation & hotkeys
+        setup_form_keyboard_navigation(
+            widgets=[
+                self.entry_sku,
+                self.entry_name,
+                self.entry_category,
+                self.entry_supplier,
+                self.entry_qty,
+                self.entry_price,
+                self.opt_status,
+                self.btn_save,
+                self.btn_cancel,
+            ],
+            on_submit=self._handle_save,
+            on_cancel=self.destroy,
+            toplevel=self,
+        )
+
+        self.btn_save.bind("<Return>", lambda _e: (self._handle_save(), "break")[1])
+        self.btn_save.bind("<space>", lambda _e: (self._handle_save(), "break")[1])
+        self.btn_cancel.bind("<Return>", lambda _e: (self.destroy(), "break")[1])
+        self.btn_cancel.bind("<space>", lambda _e: (self.destroy(), "break")[1])
+
+        # Immediate initial focus for instant typing
+        target_focus = self.entry_name if (self.is_edit and self.entry_sku.get_value()) else self.entry_sku
+        self._focus_after_id = self.after(50, target_focus.focus)
+
+    def destroy(self):
+        try:
+            if hasattr(self, "_focus_after_id") and self._focus_after_id:
+                self.after_cancel(self._focus_after_id)
+        except Exception:
+            pass
+        super().destroy()
 
     def _handle_save(self) -> None:
         self.banner.clear()
@@ -254,8 +344,8 @@ class ProductDetailsModal(ctk.CTkToplevel):
         super().__init__(parent)
         self.product = product
         self.title(f"Product Details — {product.product_id}")
-        self.geometry("480x520")
-        self.minsize(460, 500)
+        self.geometry("580x420")
+        self.minsize(520, 380)
         self.resizable(True, True)
         self.transient(parent)
         self.grab_set()
@@ -263,25 +353,25 @@ class ProductDetailsModal(ctk.CTkToplevel):
         # Center on parent
         self.update_idletasks()
         try:
-            x = parent.winfo_x() + (parent.winfo_width() // 2) - 240
-            y = parent.winfo_y() + (parent.winfo_height() // 2) - 260
+            x = parent.winfo_x() + (parent.winfo_width() // 2) - 290
+            y = parent.winfo_y() + (parent.winfo_height() // 2) - 210
             self.geometry(f"+{max(0, x)}+{max(0, y)}")
         except Exception:
             pass
 
         card = CardFrame(self)
-        card.pack(fill="both", expand=True, padx=20, pady=20)
+        card.pack(fill="both", expand=True, padx=16, pady=16)
 
         # Header with SKU and Status
         top_row = ctk.CTkFrame(card, fg_color="transparent")
-        top_row.pack(fill="x", padx=20, pady=(20, 8))
+        top_row.pack(fill="x", padx=20, pady=(16, 4))
 
         name_lbl = ctk.CTkLabel(
             top_row,
-            text=product.name,
+            text=f"📦 {product.name}",
             font=FONT_HEADING,
             text_color=COLOR_TEXT_PRIMARY,
-            wraplength=310,
+            wraplength=380,
             justify="left",
         )
         name_lbl.pack(side="left")
@@ -289,29 +379,79 @@ class ProductDetailsModal(ctk.CTkToplevel):
         badge = StatusBadge(top_row, status=product.stock_status)
         badge.pack(side="right")
 
-        sku_sub = ctk.CTkLabel(card, text=f"Product SKU: {product.product_id}", font=FONT_BODY, text_color=COLOR_TEXT_MUTED)
-        sku_sub.pack(anchor="w", padx=20, pady=(0, 18))
+        sku_sub = ctk.CTkLabel(
+            card,
+            text=f"Product SKU: {product.product_id} • Offline Local SQLite Record",
+            font=FONT_SMALL,
+            text_color=COLOR_TEXT_MUTED,
+        )
+        sku_sub.pack(anchor="w", padx=20, pady=(0, 14))
 
-        # Attributes Table
-        details = [
+        # 2-Column Attributes Grid (clean, non-scrolling)
+        grid_frame = ctk.CTkFrame(card, fg_color="transparent")
+        grid_frame.pack(fill="both", expand=True, padx=20, pady=(0, 8))
+        grid_frame.grid_columnconfigure((0, 1), weight=1, uniform="col_detail")
+
+        left_details = [
             ("Category", product.category),
             ("Supplier", product.supplier),
-            ("In-Stock Quantity", str(product.quantity)),
+            ("In-Stock Quantity", f"{product.quantity:,} units"),
             ("Unit Price", f"${product.price:.2f}"),
-            ("Total Stock Value", f"${product.total_value:,.2f}"),
-            ("Stock Status", product.stock_status),
-            ("Created Timestamp", product.created_at),
-            ("Last Updated", product.updated_at),
         ]
 
-        for label, val in details:
-            row = ctk.CTkFrame(card, fg_color="transparent")
-            row.pack(fill="x", padx=20, pady=5)
-            lbl = ctk.CTkLabel(row, text=f"{label}:", font=FONT_BODY, text_color=COLOR_TEXT_MUTED, width=150, anchor="w")
-            lbl.pack(side="left")
-            val_lbl = ctk.CTkLabel(row, text=val, font=FONT_BODY, text_color=COLOR_TEXT_PRIMARY, anchor="w")
-            val_lbl.pack(side="left")
+        right_details = [
+            ("Total Valuation", f"${product.total_value:,.2f}"),
+            ("Stock Status", product.stock_status),
+            ("Created Date", product.created_at[:16] if product.created_at else "N/A"),
+            ("Last Updated", product.updated_at[:16] if product.updated_at else "N/A"),
+        ]
 
-        # Close button
-        btn_close = SecondaryButton(card, text="Close", command=self.destroy, width=120)
-        btn_close.pack(anchor="e", padx=20, pady=(24, 20))
+        # Left Column Box
+        left_box = ctk.CTkFrame(grid_frame, fg_color=COLOR_SECONDARY, corner_radius=6)
+        left_box.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=2)
+        for label, val in left_details:
+            row = ctk.CTkFrame(left_box, fg_color="transparent")
+            row.pack(fill="x", padx=12, pady=6)
+            ctk.CTkLabel(row, text=f"{label}:", font=FONT_SMALL, text_color=COLOR_TEXT_MUTED, width=120, anchor="w").pack(side="left")
+            ctk.CTkLabel(row, text=val, font=FONT_BODY_BOLD, text_color=COLOR_TEXT_PRIMARY, anchor="w").pack(side="left")
+
+        # Right Column Box
+        right_box = ctk.CTkFrame(grid_frame, fg_color=COLOR_SECONDARY, corner_radius=6)
+        right_box.grid(row=0, column=1, sticky="nsew", padx=(6, 0), pady=2)
+        for label, val in right_details:
+            row = ctk.CTkFrame(right_box, fg_color="transparent")
+            row.pack(fill="x", padx=12, pady=6)
+            ctk.CTkLabel(row, text=f"{label}:", font=FONT_SMALL, text_color=COLOR_TEXT_MUTED, width=120, anchor="w").pack(side="left")
+            ctk.CTkLabel(row, text=val, font=FONT_BODY_BOLD, text_color=COLOR_TEXT_PRIMARY, anchor="w").pack(side="left")
+
+        # Footer Action Bar
+        btn_row = ctk.CTkFrame(card, fg_color="transparent")
+        btn_row.pack(fill="x", side="bottom", padx=20, pady=(6, 16))
+
+        hint_kb = ctk.CTkLabel(
+            btn_row,
+            text="⌨️ Esc / Enter: Close dialog",
+            font=FONT_SMALL,
+            text_color=COLOR_TEXT_MUTED,
+        )
+        hint_kb.pack(side="left")
+
+        self.btn_close = SecondaryButton(btn_row, text="Close", command=self.destroy, width=110, height=34)
+        self.btn_close.pack(side="right")
+
+        # Hotkeys
+        self.bind("<Escape>", lambda _e: self.destroy())
+        self.bind("<Return>", lambda _e: self.destroy())
+        self.btn_close.bind("<Return>", lambda _e: (self.destroy(), "break")[1])
+        self.btn_close.bind("<space>", lambda _e: (self.destroy(), "break")[1])
+
+        self._focus_after_id = self.after(50, self.btn_close.focus_set)
+
+    def destroy(self):
+        try:
+            if hasattr(self, "_focus_after_id") and self._focus_after_id:
+                self.after_cancel(self._focus_after_id)
+        except Exception:
+            pass
+        super().destroy()
+

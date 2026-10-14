@@ -113,6 +113,14 @@ class LabeledEntry(ctk.CTkFrame):
         """Give focus to the internal entry field."""
         self.entry.focus()
 
+    def focus_set(self) -> None:
+        """Explicitly set keyboard focus on the internal entry widget."""
+        self.entry.focus_set()
+
+    def bind(self, sequence=None, func=None, add=None):
+        """Bind keyboard and mouse events directly to the entry field."""
+        return self.entry.bind(sequence, func, add)
+
 
 class PrimaryButton(ctk.CTkButton):
     """Standardized primary action button."""
@@ -390,3 +398,110 @@ class ConfirmationModal(ctk.CTkToplevel):
         else:
             btn_confirm = PrimaryButton(btn_row, text=confirm_text, command=_on_confirm, width=125)
         btn_confirm.pack(side="right")
+
+        # Setup keyboard navigation and hotkeys
+        setup_form_keyboard_navigation(
+            widgets=[btn_confirm, btn_cancel],
+            on_submit=_on_confirm,
+            on_cancel=self.destroy,
+            toplevel=self,
+        )
+        btn_confirm.bind("<Return>", lambda _e: (_on_confirm(), "break")[1])
+        btn_confirm.bind("<space>", lambda _e: (_on_confirm(), "break")[1])
+        btn_cancel.bind("<Return>", lambda _e: (self.destroy(), "break")[1])
+        btn_cancel.bind("<space>", lambda _e: (self.destroy(), "break")[1])
+
+        self._focus_after_id = self.after(50, btn_cancel.focus_set)
+
+    def destroy(self):
+        try:
+            if hasattr(self, "_focus_after_id") and self._focus_after_id:
+                self.after_cancel(self._focus_after_id)
+        except Exception:
+            pass
+        super().destroy()
+
+
+def setup_form_keyboard_navigation(
+    widgets: list[Any],
+    on_submit: Optional[Callable[[], None]] = None,
+    on_cancel: Optional[Callable[[], None]] = None,
+    toplevel: Optional[Any] = None,
+) -> None:
+    """Configure robust, circular Tab/Shift-Tab traversal and Enter/Escape hotkeys.
+
+    Args:
+        widgets: Ordered list of interactive widgets to cycle through with Tab / Shift-Tab.
+        on_submit: Optional callback executed when Enter is pressed in text fields or on the submit button.
+        on_cancel: Optional callback executed when Escape is pressed or on the cancel button.
+        toplevel: Optional toplevel window to bind global Escape key.
+    """
+    if not widgets:
+        return
+
+    def focus_widget(w: Any) -> None:
+        if hasattr(w, "entry"):
+            w.entry.focus_set()
+        elif hasattr(w, "focus_set"):
+            w.focus_set()
+        elif hasattr(w, "focus"):
+            w.focus()
+
+    for i, w in enumerate(widgets):
+        nxt = widgets[(i + 1) % len(widgets)]
+        prv = widgets[(i - 1) % len(widgets)]
+
+        def make_tab(target):
+            def _tab_handler(_e=None):
+                focus_widget(target)
+                return "break"
+            return _tab_handler
+
+        def make_shift_tab(target):
+            def _shift_tab_handler(_e=None):
+                focus_widget(target)
+                return "break"
+            return _shift_tab_handler
+
+        tab_fn = make_tab(nxt)
+        shift_tab_fn = make_shift_tab(prv)
+
+        w._nav_next_widget = nxt
+        w._nav_prev_widget = prv
+        w._trigger_nav_next = tab_fn
+        w._trigger_nav_prev = shift_tab_fn
+
+        bind_targets = []
+        if hasattr(w, "entry"):
+            bind_targets.extend([w.entry, getattr(w.entry, "_entry", None)])
+        else:
+            bind_targets.extend([w, getattr(w, "_canvas", None), getattr(w, "_text_label", None)])
+
+        for bt in bind_targets:
+            if bt:
+                bt.bind("<Tab>", tab_fn)
+                bt.bind("<Shift-Tab>", shift_tab_fn)
+
+        # Enter key behavior for entry fields:
+        if on_submit and (hasattr(w, "entry") or isinstance(w, ctk.CTkEntry)):
+            entry_target = w.entry if hasattr(w, "entry") else w
+            def make_enter_handler(sub_fn):
+                def _enter_handler(_e=None):
+                    sub_fn()
+                    return "break"
+                return _enter_handler
+            enter_fn = make_enter_handler(on_submit)
+            w._trigger_nav_submit = enter_fn
+            entry_target.bind("<Return>", enter_fn)
+
+    # Escape key on modal toplevel
+    if toplevel and on_cancel:
+        def make_esc_handler(cancel_fn):
+            def _esc_handler(_e=None):
+                cancel_fn()
+                return "break"
+            return _esc_handler
+        esc_fn = make_esc_handler(on_cancel)
+        toplevel._trigger_nav_cancel = esc_fn
+        toplevel.bind("<Escape>", esc_fn)
+

@@ -14,6 +14,7 @@ from app.ui.components import (
     MessageBanner,
     PrimaryButton,
     SecondaryButton,
+    setup_form_keyboard_navigation,
 )
 from app.ui.theme import (
     COLOR_CARD_BG,
@@ -114,6 +115,14 @@ class SettingsView(ctk.CTkScrollableFrame):
             width=200,
         )
         btn_save_p.pack(anchor="w", padx=20, pady=(8, 20))
+
+        # Setup Tab navigation and Enter hotkey for profile fields
+        setup_form_keyboard_navigation(
+            widgets=[self.entry_name, self.entry_org, btn_save_p],
+            on_submit=self._handle_save_profile,
+        )
+        btn_save_p.bind("<Return>", lambda _e: (self._handle_save_profile(), "break")[1])
+        btn_save_p.bind("<space>", lambda _e: (self._handle_save_profile(), "break")[1])
 
         # Session & Preferences Card
         card_prefs = CardFrame(container)
@@ -232,6 +241,19 @@ class SettingsView(ctk.CTkScrollableFrame):
             width=180,
         )
         btn_change_pwd.pack(anchor="w", padx=20, pady=(8, 20))
+
+        # Setup Tab navigation and Enter hotkey for password fields
+        setup_form_keyboard_navigation(
+            widgets=[
+                self.entry_curr_pwd,
+                self.entry_new_pwd,
+                self.entry_conf_pwd,
+                btn_change_pwd,
+            ],
+            on_submit=self._handle_change_password,
+        )
+        btn_change_pwd.bind("<Return>", lambda _e: (self._handle_change_password(), "break")[1])
+        btn_change_pwd.bind("<space>", lambda _e: (self._handle_change_password(), "break")[1])
 
         # System & Quality Info Card
         card_info = CardFrame(container)

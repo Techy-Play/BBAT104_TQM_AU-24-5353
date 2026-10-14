@@ -29,6 +29,7 @@ from app.ui.components import (
     SecondaryButton,
     StatCard,
     StatusBadge,
+    setup_form_keyboard_navigation,
 )
 from app.ui.dialogs_inventory import ProductDetailsModal, ProductFormModal
 from app.ui.theme import (
@@ -240,6 +241,12 @@ class DashboardFrame(ctk.CTkScrollableFrame):
             width=145,
         )
         btn_qopen.pack(side="left")
+
+        # Setup Tab traversal across quick search controls
+        setup_form_keyboard_navigation(
+            widgets=[self.quick_search_entry, btn_qsearch, btn_qclear, btn_qopen],
+            on_submit=self._handle_quick_search,
+        )
 
         # Inventory Table Overview Card
         self.table_card = CardFrame(content)

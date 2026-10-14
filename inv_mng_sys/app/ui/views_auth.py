@@ -14,6 +14,7 @@ from app.ui.components import (
     LabeledEntry,
     MessageBanner,
     PrimaryButton,
+    setup_form_keyboard_navigation,
 )
 from app.ui.theme import (
     COLOR_CARD_BG,
@@ -148,6 +149,23 @@ class FirstRunSetupFrame(ctk.CTkScrollableFrame):
         )
         self.btn_submit.pack(pady=(8, 28))
 
+        # Setup Tab/Shift-Tab keyboard navigation and Enter hotkey
+        setup_form_keyboard_navigation(
+            widgets=[
+                self.entry_name,
+                self.entry_org,
+                self.entry_user,
+                self.entry_pwd,
+                self.entry_confirm,
+                self.chk_keep_logged_in,
+                self.btn_submit,
+            ],
+            on_submit=self._handle_setup,
+        )
+        self.btn_submit.bind("<Return>", lambda _e: (self._handle_setup(), "break")[1])
+        self.btn_submit.bind("<space>", lambda _e: (self._handle_setup(), "break")[1])
+        self.after(50, self.entry_name.focus)
+
     def _handle_setup(self) -> None:
         self.banner.clear()
 
@@ -280,6 +298,20 @@ class LoginFrame(ctk.CTkFrame):
             height=38,
         )
         self.btn_login.pack(fill="x", pady=(2, 14))
+
+        # Setup Tab/Shift-Tab keyboard navigation and Enter hotkey
+        setup_form_keyboard_navigation(
+            widgets=[
+                self.entry_user,
+                self.entry_pwd,
+                self.chk_keep_logged_in,
+                self.btn_login,
+            ],
+            on_submit=self._handle_login,
+        )
+        self.btn_login.bind("<Return>", lambda _e: (self._handle_login(), "break")[1])
+        self.btn_login.bind("<space>", lambda _e: (self._handle_login(), "break")[1])
+        self.after(50, self.entry_user.focus)
 
         # Footer security tag
         footer = ctk.CTkLabel(

@@ -23,6 +23,7 @@ from app.ui.components import (
     PrimaryButton,
     SecondaryButton,
     StatusBadge,
+    setup_form_keyboard_navigation,
 )
 from app.ui.dialogs_inventory import ProductDetailsModal, ProductFormModal
 from app.ui.theme import (
@@ -243,6 +244,21 @@ class InventoryView(ctk.CTkFrame):
             command=lambda _val: self.apply_filters(),
         )
         self.opt_sort_dir.pack(side="left")
+
+        # Setup Tab navigation across search and filter options
+        setup_form_keyboard_navigation(
+            widgets=[
+                self.search_entry,
+                btn_search,
+                btn_clear,
+                self.opt_category,
+                self.opt_supplier,
+                self.opt_status,
+                self.opt_sort_col,
+                self.opt_sort_dir,
+            ],
+            on_submit=self.apply_filters,
+        )
 
         # Result count & active filter banner
         self.count_lbl = ctk.CTkLabel(
