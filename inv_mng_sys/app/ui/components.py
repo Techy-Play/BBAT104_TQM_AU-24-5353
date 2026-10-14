@@ -201,7 +201,7 @@ class MessageBanner(ctk.CTkLabel):
 
 
 class StatCard(CardFrame):
-    """Dashboard statistic card displaying icon, numeric metric, and title."""
+    """Dashboard statistic card displaying icon, numeric metric, title, and optional deep-link action."""
 
     def __init__(
         self,
@@ -210,11 +210,14 @@ class StatCard(CardFrame):
         value: str,
         icon: str,
         accent_color=COLOR_PRIMARY,
+        link_text: Optional[str] = None,
+        on_click: Optional[Callable[[], None]] = None,
         **kwargs,
     ):
         super().__init__(master, **kwargs)
 
         self.accent_color = accent_color
+        self.on_click_callback = on_click
 
         # Top row: Icon and title
         top_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -243,7 +246,55 @@ class StatCard(CardFrame):
             font=FONT_STAT_VALUE,
             text_color=COLOR_TEXT_PRIMARY,
         )
-        self.val_lbl.pack(anchor="w", padx=14, pady=(2, 12))
+        self.val_lbl.pack(anchor="w", padx=14, pady=(2, 2))
+
+        # Optional Deep Link text/indicator
+        self.link_lbl: Optional[ctk.CTkLabel] = None
+        if link_text or on_click:
+            display_link = link_text or "View in Inventory →"
+            self.link_lbl = ctk.CTkLabel(
+                self,
+                text=display_link,
+                font=FONT_SMALL,
+                text_color=self.accent_color,
+                anchor="w",
+            )
+            self.link_lbl.pack(anchor="w", padx=14, pady=(0, 10))
+
+            self._setup_click_handlers(top_frame, icon_lbl, title_lbl)
+
+    def _setup_click_handlers(self, *widgets) -> None:
+        if not self.on_click_callback:
+            return
+
+        def _handle_click(_e=None):
+            if self.on_click_callback:
+                self.on_click_callback()
+
+        def _on_enter(_e=None):
+            self.configure(border_color=self.accent_color)
+            if self.link_lbl:
+                self.link_lbl.configure(font=(FONT_SMALL[0], FONT_SMALL[1], "bold"))
+
+        def _on_leave(_e=None):
+            self.configure(border_color=COLOR_BORDER)
+            if self.link_lbl:
+                self.link_lbl.configure(font=FONT_SMALL)
+
+        clickable_elements = [self, self.val_lbl]
+        if self.link_lbl is not None:
+            clickable_elements.append(self.link_lbl)
+        clickable_elements.extend(widgets)
+
+        for w in clickable_elements:
+            if w is not None:
+                w.bind("<Button-1>", _handle_click)
+                w.bind("<Enter>", _on_enter)
+                w.bind("<Leave>", _on_leave)
+                try:
+                    w.configure(cursor="hand2")
+                except Exception:
+                    pass
 
     def update_value(self, new_val: Union[str, int, float]) -> None:
         """Dynamically update metric value."""

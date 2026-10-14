@@ -27,6 +27,10 @@ from app.ui.theme import (
     FONT_SECTION,
     FONT_SMALL,
     FONT_SUBTITLE,
+    THEME_DROPDOWN_OPTIONS,
+    THEME_MODES,
+    get_theme_display_string,
+    parse_theme_mode,
 )
 
 logger = logging.getLogger(__name__)
@@ -40,11 +44,13 @@ class SettingsView(ctk.CTkScrollableFrame):
         master,
         user_session: UserSession,
         on_profile_updated: Callable[[UserSession], None],
+        db_path: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(master, fg_color="transparent", **kwargs)
         self.user_session = user_session
         self.on_profile_updated = on_profile_updated
+        self.db_path = db_path
 
         self._build_ui()
 
@@ -150,24 +156,26 @@ class SettingsView(ctk.CTkScrollableFrame):
 
         t_desc = ctk.CTkLabel(
             card_theme,
-            text="Switch between System Default, Dark Mode, or Light Mode desktop styling.",
+            text="Switch between System Default (Device Appearance), Dark Mode, or Light Mode. Your selection is saved persistently across sessions.",
             font=FONT_SMALL,
             text_color=COLOR_TEXT_MUTED,
+            wraplength=550,
+            justify="left",
         )
         t_desc.pack(anchor="w", padx=20, pady=(0, 12))
 
         t_box = ctk.CTkFrame(card_theme, fg_color="transparent")
-        t_box.pack(fill="x", padx=20, pady=(0, 18))
+        t_box.pack(fill="x", padx=20, pady=(0, 10))
 
-        ctk.CTkLabel(t_box, text="Theme Mode:", font=FONT_BODY, text_color=COLOR_TEXT_PRIMARY, width=120, anchor="w").pack(side="left")
+        ctk.CTkLabel(t_box, text="Selected Theme:", font=FONT_BODY, text_color=COLOR_TEXT_PRIMARY, width=130, anchor="w").pack(side="left")
 
-        current_mode = ctk.get_appearance_mode()
+        current_theme_key = SettingsService.get_theme_preference(custom_path=self.db_path)
         self.opt_theme = ctk.CTkOptionMenu(
             t_box,
-            values=["System", "Dark", "Light"],
+            values=THEME_DROPDOWN_OPTIONS,
             command=self._handle_theme_change,
-            width=140,
-            height=32,
+            width=230,
+            height=34,
             corner_radius=6,
             fg_color=COLOR_SECONDARY,
             button_color=COLOR_SECONDARY_HOVER,
@@ -177,8 +185,11 @@ class SettingsView(ctk.CTkScrollableFrame):
             dropdown_text_color=COLOR_TEXT_PRIMARY,
             dropdown_hover_color=COLOR_PRIMARY,
         )
-        self.opt_theme.set(current_mode.capitalize() if current_mode else "System")
+        self.opt_theme.set(get_theme_display_string(current_theme_key))
         self.opt_theme.pack(side="left")
+
+        self.theme_banner = MessageBanner(card_theme)
+        self.theme_banner.pack(anchor="w", padx=20, pady=(0, 16))
 
         # Security Card (Password Change)
         card_sec = CardFrame(container)
@@ -296,7 +307,11 @@ class SettingsView(ctk.CTkScrollableFrame):
             logger.exception("Error changing password.")
             self.sec_banner.show_error(f"Failed to change password: {exc}")
 
-    def _handle_theme_change(self, mode: str) -> None:
-        """Dynamically toggle appearance mode across CustomTkinter UI."""
-        logger.info("Switching appearance mode to: %s", mode)
-        ctk.set_appearance_mode(mode.lower())
+    def _handle_theme_change(self, selected_display: str) -> None:
+        """Dynamically toggle and persist appearance mode across CustomTkinter UI."""
+        mode = parse_theme_mode(selected_display)
+        logger.info("Switching appearance mode to '%s' (selected: %s)", mode, selected_display)
+        SettingsService.set_theme_preference(mode, custom_path=self.db_path)
+        ctk.set_appearance_mode(mode)
+        item = THEME_MODES.get(mode, THEME_MODES["system"])
+        self.theme_banner.show_success(f"{item['symbol']} {item['display_name']} applied and saved successfully.")

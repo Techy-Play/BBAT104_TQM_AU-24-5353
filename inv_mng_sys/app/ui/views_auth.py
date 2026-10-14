@@ -191,43 +191,66 @@ class LoginFrame(ctk.CTkFrame):
         self._build_ui()
 
     def _build_ui(self) -> None:
-        container = CardFrame(self, width=420)
-        container.pack(expand=True, pady=40, padx=20)
+        container = CardFrame(self, width=390, corner_radius=12)
+        container.pack(expand=True, padx=24, pady=24)
+
+        # Brand icon badge
+        badge_frame = ctk.CTkFrame(
+            container,
+            fg_color=COLOR_PRIMARY,
+            width=50,
+            height=50,
+            corner_radius=12,
+        )
+        badge_frame.pack(pady=(28, 10))
+        badge_frame.pack_propagate(False)
+
+        badge_icon = ctk.CTkLabel(
+            badge_frame,
+            text="📦",
+            font=(FONT_TITLE[0], 24),
+            text_color="#ffffff",
+        )
+        badge_icon.pack(expand=True)
 
         # Header
         title = ctk.CTkLabel(
             container,
-            text="Inventory Management System",
+            text="Welcome Back",
             font=FONT_TITLE,
             text_color=COLOR_TEXT_PRIMARY,
         )
-        title.pack(pady=(32, 4))
+        title.pack(pady=(0, 2))
 
         subtitle = ctk.CTkLabel(
             container,
-            text="BBAT104 — Offline Desktop Access",
-            font=FONT_SUBTITLE,
+            text="BBAT104 • Offline Desktop Access",
+            font=FONT_SMALL,
             text_color=COLOR_TEXT_MUTED,
         )
-        subtitle.pack(pady=(0, 24))
+        subtitle.pack(pady=(0, 16))
+
+        # Form fields container
+        form_box = ctk.CTkFrame(container, fg_color="transparent")
+        form_box.pack(fill="x", padx=28)
 
         # Fields
         self.entry_user = LabeledEntry(
-            container,
+            form_box,
             label_text="Username",
             placeholder="Enter your username",
-            width=340,
+            width=320,
         )
-        self.entry_user.pack(pady=8)
+        self.entry_user.pack(fill="x", pady=(0, 8))
 
         self.entry_pwd = LabeledEntry(
-            container,
+            form_box,
             label_text="Password",
             placeholder="Enter your password",
             is_password=True,
-            width=340,
+            width=320,
         )
-        self.entry_pwd.pack(pady=8)
+        self.entry_pwd.pack(fill="x", pady=(0, 6))
 
         # Bind Enter key to submit
         self.entry_pwd.entry.bind("<Return>", lambda event: self._handle_login())
@@ -235,27 +258,37 @@ class LoginFrame(ctk.CTkFrame):
 
         # Keep Me Logged In preference
         self.chk_keep_logged_in = ctk.CTkCheckBox(
-            container,
-            text="Keep Me Logged In",
-            font=FONT_BODY,
-            checkbox_width=20,
-            checkbox_height=20,
+            form_box,
+            text="Keep Me Logged In on this PC",
+            font=FONT_SMALL,
+            checkbox_width=18,
+            checkbox_height=18,
             corner_radius=4,
         )
-        self.chk_keep_logged_in.pack(pady=12, padx=30, anchor="w")
+        self.chk_keep_logged_in.pack(anchor="w", pady=(4, 10))
 
         # Feedback banner
-        self.banner = MessageBanner(container)
-        self.banner.pack(pady=(4, 8), padx=20)
+        self.banner = MessageBanner(form_box)
+        self.banner.pack(fill="x", pady=(0, 6))
 
         # Submit button
         self.btn_login = PrimaryButton(
-            container,
+            form_box,
             text="Sign In",
             command=self._handle_login,
-            width=340,
+            width=320,
+            height=38,
         )
-        self.btn_login.pack(pady=(8, 32))
+        self.btn_login.pack(fill="x", pady=(2, 14))
+
+        # Footer security tag
+        footer = ctk.CTkLabel(
+            container,
+            text="🔒 Offline SQLite Storage • Quality Assured",
+            font=FONT_SMALL,
+            text_color=COLOR_TEXT_MUTED,
+        )
+        footer.pack(pady=(0, 22))
 
     def _handle_login(self) -> None:
         self.banner.clear()

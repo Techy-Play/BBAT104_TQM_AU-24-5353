@@ -21,6 +21,7 @@ from app.inventory.crud import (
     get_all_products,
     get_inventory_statistics,
 )
+from app.inventory.filters import FilterCriteria
 from app.inventory.search import search_products_quick
 from app.ui.components import (
     CardFrame,
@@ -73,9 +74,9 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         self,
         master,
         user_session: UserSession,
-        on_navigate_inventory: Callable[[], None],
-        on_navigate_settings: Callable[[], None],
-        on_logout: Callable[[], None],
+        on_navigate_inventory: Optional[Callable[..., None]] = None,
+        on_navigate_settings: Optional[Callable[[], None]] = None,
+        on_logout: Optional[Callable[[], None]] = None,
         db_path: Optional[str] = None,
         **kwargs,
     ):
@@ -88,6 +89,14 @@ class DashboardFrame(ctk.CTkScrollableFrame):
 
         self._build_ui()
         self.refresh_dashboard()
+
+    def _navigate_to_inventory(self, criteria: Optional[FilterCriteria] = None) -> None:
+        """Deep-link navigation into Inventory Management with optional pre-applied filters."""
+        if self.on_navigate_inventory:
+            try:
+                self.on_navigate_inventory(criteria)
+            except TypeError:
+                self.on_navigate_inventory()
 
     def update_user_session(self, updated_session: UserSession) -> None:
         """Update active session attributes (e.g. after profile edit in Settings)."""
@@ -138,26 +147,64 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         btn_view_inv = SecondaryButton(
             hero_right,
             text="View Inventory",
-            command=self.on_navigate_inventory,
+            command=lambda: self._navigate_to_inventory(None),
             width=130,
         )
         btn_view_inv.pack(side="left")
 
-        # 4 Key Metric Stat Cards
+        # 4 Key Metric Stat Cards with Interactive Deep Links
         stats_grid = ctk.CTkFrame(content, fg_color="transparent")
         stats_grid.pack(fill="x", pady=(0, 16))
         stats_grid.grid_columnconfigure((0, 1, 2, 3), weight=1)
 
-        self.card_total = StatCard(stats_grid, title="Total Products", value="0", icon="📦", accent_color=COLOR_PRIMARY)
+        self.card_total = StatCard(
+            stats_grid,
+            title="Total Products",
+            value="0",
+            icon="📦",
+            accent_color=COLOR_PRIMARY,
+            link_text="View All Products ↗",
+            on_click=lambda: self._navigate_to_inventory(None),
+        )
         self.card_total.grid(row=0, column=0, sticky="ew", padx=(0, 6))
 
-        self.card_qty = StatCard(stats_grid, title="Total Stock Qty", value="0", icon="🔢", accent_color=COLOR_INFO)
+        self.card_qty = StatCard(
+            stats_grid,
+            title="Total Stock Qty",
+            value="0",
+            icon="🔢",
+            accent_color=COLOR_INFO,
+            link_text="Sort by Quantity ↗",
+            on_click=lambda: self._navigate_to_inventory(
+                FilterCriteria(sort_by="Quantity", sort_direction="DESC")
+            ),
+        )
         self.card_qty.grid(row=0, column=1, sticky="ew", padx=6)
 
-        self.card_low = StatCard(stats_grid, title="Low Stock Alerts", value="0", icon="⚠️", accent_color=COLOR_WARNING)
+        self.card_low = StatCard(
+            stats_grid,
+            title="Low Stock Alerts",
+            value="0",
+            icon="⚠️",
+            accent_color=COLOR_WARNING,
+            link_text="View Low Stock ↗",
+            on_click=lambda: self._navigate_to_inventory(
+                FilterCriteria(stock_status="Low Stock")
+            ),
+        )
         self.card_low.grid(row=0, column=2, sticky="ew", padx=6)
 
-        self.card_out = StatCard(stats_grid, title="Out of Stock", value="0", icon="🚫", accent_color=COLOR_DANGER)
+        self.card_out = StatCard(
+            stats_grid,
+            title="Out of Stock",
+            value="0",
+            icon="🚫",
+            accent_color=COLOR_DANGER,
+            link_text="View Out of Stock ↗",
+            on_click=lambda: self._navigate_to_inventory(
+                FilterCriteria(stock_status="Out of Stock")
+            ),
+        )
         self.card_out.grid(row=0, column=3, sticky="ew", padx=(6, 0))
 
         # Quick Search Bar
@@ -184,7 +231,15 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         btn_qsearch.pack(side="left", padx=(0, 6))
 
         btn_qclear = SecondaryButton(search_row, text="Reset", command=self._handle_clear_search, width=80)
-        btn_qclear.pack(side="left")
+        btn_qclear.pack(side="left", padx=(0, 6))
+
+        btn_qopen = SecondaryButton(
+            search_row,
+            text="Open in Inventory ↗",
+            command=self._handle_open_in_inventory,
+            width=145,
+        )
+        btn_qopen.pack(side="left")
 
         # Inventory Table Overview Card
         self.table_card = CardFrame(content)
@@ -204,6 +259,14 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         btn_refresh = SecondaryButton(table_top, text="🔄 Refresh", command=self.refresh_dashboard, width=90)
         btn_refresh.pack(side="right")
 
+        btn_view_full = SecondaryButton(
+            table_top,
+            text="View Full Inventory ↗",
+            command=lambda: self._navigate_to_inventory(None),
+            width=150,
+        )
+        btn_view_full.pack(side="right", padx=(0, 8))
+
         # Table Header
         self._build_table_header()
 
@@ -217,14 +280,14 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         header_frame.pack_propagate(False)
 
         cols = [
-            ("SKU / ID", 110),
-            ("Product Name", 220),
-            ("Category", 130),
-            ("Supplier", 140),
-            ("Quantity", 80),
-            ("Price", 80),
-            ("Status", 110),
-            ("Action", 80),
+            ("SKU / ID", 100),
+            ("Product Name", 200),
+            ("Category", 120),
+            ("Supplier", 130),
+            ("Quantity", 70),
+            ("Price", 75),
+            ("Status", 105),
+            ("Actions", 130),
         ]
 
         for col_name, width in cols:
@@ -234,7 +297,7 @@ class DashboardFrame(ctk.CTkScrollableFrame):
                 font=FONT_TABLE_HEADER,
                 text_color=COLOR_TEXT_PRIMARY,
                 width=width,
-                anchor="w" if col_name != "Action" else "center",
+                anchor="w" if col_name != "Actions" else "center",
             )
             lbl.pack(side="left", padx=4)
 
@@ -259,6 +322,12 @@ class DashboardFrame(ctk.CTkScrollableFrame):
     def _handle_clear_search(self) -> None:
         self.quick_search_entry.delete(0, "end")
         self._render_table(None)
+
+    def _handle_open_in_inventory(self) -> None:
+        """Deep-link to Inventory workspace filtered by current Quick-Search query."""
+        query = self.quick_search_entry.get().strip()
+        criteria = FilterCriteria(search_query=query) if query else None
+        self._navigate_to_inventory(criteria)
 
     def _render_table(self, query: Optional[str] = None) -> None:
         for child in self.table_body.winfo_children():
@@ -290,31 +359,40 @@ class DashboardFrame(ctk.CTkScrollableFrame):
                 row.pack(fill="x", pady=2, padx=4)
                 row.pack_propagate(False)
 
-                ctk.CTkLabel(row, text=prod.product_id, font=FONT_BODY, width=110, anchor="w").pack(side="left", padx=4)
-                ctk.CTkLabel(row, text=prod.name, font=FONT_BODY, width=220, anchor="w").pack(side="left", padx=4)
-                ctk.CTkLabel(row, text=prod.category, font=FONT_BODY, width=130, anchor="w", text_color=COLOR_TEXT_MUTED).pack(side="left", padx=4)
-                ctk.CTkLabel(row, text=prod.supplier, font=FONT_BODY, width=140, anchor="w", text_color=COLOR_TEXT_MUTED).pack(side="left", padx=4)
-                ctk.CTkLabel(row, text=str(prod.quantity), font=FONT_BODY, width=80, anchor="w").pack(side="left", padx=4)
-                ctk.CTkLabel(row, text=f"${prod.price:.2f}", font=FONT_BODY, width=80, anchor="w").pack(side="left", padx=4)
+                ctk.CTkLabel(row, text=prod.product_id, font=FONT_BODY, width=100, anchor="w").pack(side="left", padx=4)
+                ctk.CTkLabel(row, text=prod.name, font=FONT_BODY, width=200, anchor="w").pack(side="left", padx=4)
+                ctk.CTkLabel(row, text=prod.category, font=FONT_BODY, width=120, anchor="w", text_color=COLOR_TEXT_MUTED).pack(side="left", padx=4)
+                ctk.CTkLabel(row, text=prod.supplier, font=FONT_BODY, width=130, anchor="w", text_color=COLOR_TEXT_MUTED).pack(side="left", padx=4)
+                ctk.CTkLabel(row, text=str(prod.quantity), font=FONT_BODY, width=70, anchor="w").pack(side="left", padx=4)
+                ctk.CTkLabel(row, text=f"${prod.price:.2f}", font=FONT_BODY, width=75, anchor="w").pack(side="left", padx=4)
 
-                status_box = ctk.CTkFrame(row, fg_color="transparent", width=110)
+                status_box = ctk.CTkFrame(row, fg_color="transparent", width=105)
                 status_box.pack(side="left", padx=4)
                 status_box.pack_propagate(False)
                 badge = StatusBadge(status_box, status=prod.stock_status)
                 badge.pack(side="left", pady=6)
 
-                act_box = ctk.CTkFrame(row, fg_color="transparent", width=80)
+                act_box = ctk.CTkFrame(row, fg_color="transparent", width=130)
                 act_box.pack(side="left", padx=4)
                 act_box.pack_propagate(False)
 
                 btn_view = SecondaryButton(
                     act_box,
                     text="View",
-                    width=64,
+                    width=54,
                     height=28,
                     command=lambda p=prod: ProductDetailsModal(parent=self.winfo_toplevel(), product=p),
                 )
-                btn_view.pack(side="left", padx=8, pady=6)
+                btn_view.pack(side="left", padx=(0, 4), pady=6)
+
+                btn_open = PrimaryButton(
+                    act_box,
+                    text="Open ↗",
+                    width=62,
+                    height=28,
+                    command=lambda p=prod: self._navigate_to_inventory(FilterCriteria(search_query=p.product_id)),
+                )
+                btn_open.pack(side="left", pady=6)
 
         except Exception as exc:
             logger.exception("Error rendering dashboard table.")

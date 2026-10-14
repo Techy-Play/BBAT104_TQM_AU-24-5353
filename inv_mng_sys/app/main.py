@@ -25,6 +25,8 @@ from app.authentication.security import UserSession
 from app.authentication.setup import is_first_run
 from app.dashboard.dashboard import DashboardFrame
 from app.database.schema import init_database
+from app.inventory.filters import FilterCriteria
+from app.settings.settings import SettingsService
 from app.ui.components import CardFrame, DangerButton, SecondaryButton
 from app.ui.theme import (
     COLOR_CARD_BG,
@@ -61,23 +63,29 @@ class IMSApplication(ctk.CTk):
         self.nav_bar: Optional[ctk.CTkFrame] = None
         self.content_container: Optional[ctk.CTkFrame] = None
 
+        # Apply persistent theme setting
+        saved_theme = SettingsService.get_theme_preference(custom_path=self.db_path)
+        ctk.set_appearance_mode(saved_theme)
+
         # Window configuration
         self.title("Inventory Management System (IMS) — BBAT104 (Q13)")
-        self.geometry("1080x750")
-        self.minsize(920, 650)
-
-        # Center window on screen
-        self.update_idletasks()
-        screen_w = self.winfo_screenwidth()
-        screen_h = self.winfo_screenheight()
-        pos_x = max(0, int((screen_w - 1080) / 2))
-        pos_y = max(0, int((screen_h - 750) / 2))
-        self.geometry(f"1080x750+{pos_x}+{pos_y}")
 
         # Ensure database tables and indexes exist
         init_database(custom_path=self.db_path)
 
         self._route_initial_view()
+
+    def _resize_and_center(self, width: int, height: int, min_w: int, min_h: int) -> None:
+        """Resize and center the application window on screen with constraints."""
+        self.target_width = width
+        self.target_height = height
+        self.minsize(min_w, min_h)
+        self.update_idletasks()
+        screen_w = self.winfo_screenwidth()
+        screen_h = self.winfo_screenheight()
+        pos_x = max(0, int((screen_w - width) / 2))
+        pos_y = max(0, int((screen_h - height) / 2))
+        self.geometry(f"{width}x{height}+{pos_x}+{pos_y}")
 
     def _clear_all(self) -> None:
         """Clear all active view widgets from the window."""
@@ -109,6 +117,7 @@ class IMSApplication(ctk.CTk):
     def show_setup(self) -> None:
         """Display the first-run account setup screen."""
         self._clear_all()
+        self._resize_and_center(520, 680, 480, 580)
         self.current_view = FirstRunSetupFrame(
             master=self,
             on_success=self.show_app_shell,
@@ -116,8 +125,9 @@ class IMSApplication(ctk.CTk):
         self.current_view.pack(fill="both", expand=True)
 
     def show_login(self) -> None:
-        """Display the user authentication screen."""
+        """Display the user authentication screen with compact geometry."""
         self._clear_all()
+        self._resize_and_center(480, 600, 440, 540)
         self.current_view = LoginFrame(
             master=self,
             on_success=self.show_app_shell,
@@ -128,6 +138,7 @@ class IMSApplication(ctk.CTk):
         """Initialize the authenticated application workspace shell with top navigation."""
         self.current_session = session
         self._clear_all()
+        self._resize_and_center(1100, 750, 960, 650)
 
         # Build Navigation Header
         self._build_nav_bar()
@@ -255,14 +266,15 @@ class IMSApplication(ctk.CTk):
         )
         self.current_view.pack(fill="both", expand=True)
 
-    def show_inventory_view(self) -> None:
-        """Display the inventory management workspace (Phase 6)."""
+    def show_inventory_view(self, initial_criteria: Optional[FilterCriteria] = None) -> None:
+        """Display the inventory management workspace (Phase 6), optionally with pre-applied filters."""
         self._update_nav_active("inv")
         self._clear_content_view()
         self.current_view = InventoryView(
             master=self.content_container,
             on_data_changed=lambda: None,
             db_path=self.db_path,
+            initial_criteria=initial_criteria,
         )
         self.current_view.pack(fill="both", expand=True)
 
@@ -274,6 +286,7 @@ class IMSApplication(ctk.CTk):
             master=self.content_container,
             user_session=self.current_session,
             on_profile_updated=self._on_profile_updated,
+            db_path=self.db_path,
         )
         self.current_view.pack(fill="both", expand=True)
 
@@ -307,7 +320,9 @@ def main() -> int:
     init_status = init_database()
     logger.info("Database initialized: %s", init_status["database_path"])
 
-    ctk.set_appearance_mode("System")
+    # Load and apply persisted theme (defaults to system / device default)
+    saved_theme = SettingsService.get_theme_preference()
+    ctk.set_appearance_mode(saved_theme)
     ctk.set_default_color_theme("blue")
 
     app = IMSApplication()

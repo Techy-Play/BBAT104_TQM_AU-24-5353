@@ -56,6 +56,7 @@ class InventoryView(ctk.CTkFrame):
         master,
         on_data_changed: Optional[Callable[[], None]] = None,
         db_path: Optional[str] = None,
+        initial_criteria: Optional[FilterCriteria] = None,
         **kwargs,
     ):
         super().__init__(master, fg_color="transparent", **kwargs)
@@ -64,7 +65,10 @@ class InventoryView(ctk.CTkFrame):
         self.products: List[Product] = []
 
         self._build_ui()
-        self.refresh_products()
+        if initial_criteria is not None:
+            self.apply_initial_criteria(initial_criteria)
+        else:
+            self.refresh_products()
 
     def _build_ui(self) -> None:
         # Top action toolbar
@@ -341,6 +345,64 @@ class InventoryView(ctk.CTkFrame):
         self.opt_sort_col.set("Last Updated")
         self.opt_sort_dir.set("Descending")
         self.refresh_products(criteria=FilterCriteria())
+
+    def apply_initial_criteria(self, criteria: FilterCriteria) -> None:
+        """Pre-populate filter/sort controls from incoming deep-link criteria and query products."""
+        self._populate_filter_dropdowns()
+
+        # Pre-fill search query
+        self.search_entry.delete(0, "end")
+        if criteria.search_query:
+            self.search_entry.insert(0, criteria.search_query)
+
+        # Pre-fill category
+        cats = self.opt_category.cget("values")
+        if criteria.category and criteria.category in cats:
+            self.opt_category.set(criteria.category)
+        else:
+            self.opt_category.set("All Categories")
+
+        # Pre-fill supplier
+        sups = self.opt_supplier.cget("values")
+        if criteria.supplier and criteria.supplier in sups:
+            self.opt_supplier.set(criteria.supplier)
+        else:
+            self.opt_supplier.set("All Suppliers")
+
+        # Pre-fill status
+        valid_statuses = ["All Statuses", "In Stock", "Low Stock", "Out of Stock"]
+        if criteria.stock_status and criteria.stock_status in valid_statuses:
+            self.opt_status.set(criteria.stock_status)
+        else:
+            self.opt_status.set("All Statuses")
+
+        # Pre-fill sort column
+        sort_col_map = {
+            "updated_at": "Last Updated",
+            "last updated": "Last Updated",
+            "product_id": "Product ID",
+            "name": "Product Name",
+            "category": "Category",
+            "supplier": "Supplier",
+            "quantity": "Quantity",
+            "price": "Price",
+            "stock_status": "Stock Status",
+        }
+        requested_col = str(criteria.sort_by).strip().lower()
+        if requested_col in sort_col_map:
+            self.opt_sort_col.set(sort_col_map[requested_col])
+        elif criteria.sort_by in self.opt_sort_col.cget("values"):
+            self.opt_sort_col.set(criteria.sort_by)
+        else:
+            self.opt_sort_col.set("Last Updated")
+
+        # Pre-fill sort direction
+        if criteria.sort_direction and "asc" in str(criteria.sort_direction).lower():
+            self.opt_sort_dir.set("Ascending")
+        else:
+            self.opt_sort_dir.set("Descending")
+
+        self.refresh_products(criteria=criteria)
 
     def refresh_products(self, criteria: Optional[FilterCriteria] = None) -> None:
         """Execute filtered query from SQLite and re-render table rows."""

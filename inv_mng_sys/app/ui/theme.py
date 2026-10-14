@@ -64,3 +64,49 @@ HEIGHT_BUTTON_MD = 32
 HEIGHT_BUTTON_SM = 28
 HEIGHT_TABLE_ROW = 42
 HEIGHT_HEADER = 36
+
+# Theme Mode Options, Symbols & Metadata
+THEME_MODES = {
+    "system": {
+        "key": "system",
+        "display_name": "System (Device Default)",
+        "symbol": "💻",
+        "description": "Automatically adapts to your Windows system appearance",
+    },
+    "dark": {
+        "key": "dark",
+        "display_name": "Dark Mode",
+        "symbol": "🌙",
+        "description": "Dark slate surfaces optimized for low-light environments",
+    },
+    "light": {
+        "key": "light",
+        "display_name": "Light Mode",
+        "symbol": "☀️",
+        "description": "Crisp light surfaces with high-contrast typography",
+    },
+}
+
+THEME_DROPDOWN_OPTIONS = [
+    f"{THEME_MODES['system']['symbol']} {THEME_MODES['system']['display_name']}",
+    f"{THEME_MODES['dark']['symbol']} {THEME_MODES['dark']['display_name']}",
+    f"{THEME_MODES['light']['symbol']} {THEME_MODES['light']['display_name']}",
+]
+
+
+def get_theme_display_string(mode_key: str) -> str:
+    """Return formatted dropdown label (symbol + name) for a given mode key."""
+    key = str(mode_key).strip().lower()
+    item = THEME_MODES.get(key, THEME_MODES["system"])
+    return f"{item['symbol']} {item['display_name']}"
+
+
+def parse_theme_mode(display_text: str) -> str:
+    """Extract standard mode key ('system', 'dark', 'light') from dropdown string."""
+    text = str(display_text).lower()
+    if "dark" in text:
+        return "dark"
+    elif "light" in text:
+        return "light"
+    return "system"
+
