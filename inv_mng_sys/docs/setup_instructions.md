@@ -95,7 +95,27 @@ python app/main.py
 
 ---
 
-## 7. Application Workflow & Launch Behavior
+## 7. Windows Standalone Installer (setup.exe)
+
+The application includes an automated packaging pipeline that compiles the Python source into a standalone Windows installer (`setup.exe`).
+
+### Installing via setup.exe:
+Double-click `setup.exe` in the `inv_mng_sys/` directory. The installation wizard will:
+1. Provide standard Windows installation prompts (defaults to per-user AppData or Program Files).
+2. Offer an optional **Desktop Shortcut**.
+3. Register a **Start Menu Shortcut** and official Windows **Uninstaller**.
+4. Automatically persist local inventory databases at `%LOCALAPPDATA%\InventoryManagementSystem\database\ims.db` across re-installs and updates.
+
+### Rebuilding the Installer:
+To regenerate `setup.exe` from source:
+```powershell
+python build_installer.py
+```
+*(Requires `PyInstaller` and `Inno Setup 6`).*
+
+---
+
+## 8. Application Workflow & Launch Behavior
 
 ### First Launch (First-Run Setup)
 When the application starts for the first time and detects an empty `users` table:

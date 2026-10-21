@@ -24,6 +24,11 @@ database/*.db-shm
 .coverage
 htmlcov/
 
+# PyInstaller build artifacts
+build/
+dist/
+dist_installer/
+
 # IDE & OS files
 .vscode/
 .idea/

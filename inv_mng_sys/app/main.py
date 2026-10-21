@@ -69,11 +69,27 @@ class IMSApplication(ctk.CTk):
 
         # Window configuration
         self.title("Inventory Management System (IMS) — BBAT104 (Q13)")
+        self._set_window_icon()
 
         # Ensure database tables and indexes exist
         init_database(custom_path=self.db_path)
 
         self._route_initial_view()
+
+    def _set_window_icon(self) -> None:
+        """Set application icon if available."""
+        try:
+            icon_candidates = [
+                PROJECT_DIR / "app_icon.ico",
+                Path(sys.executable).resolve().parent / "app_icon.ico",
+                Path(__file__).resolve().parent.parent / "app_icon.ico",
+            ]
+            for candidate in icon_candidates:
+                if candidate.is_file():
+                    self.iconbitmap(str(candidate))
+                    break
+        except Exception:
+            pass
 
     def _resize_and_center(self, width: int, height: int, min_w: int, min_h: int) -> None:
         """Resize and center the application window on screen with constraints."""

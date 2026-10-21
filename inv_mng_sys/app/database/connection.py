@@ -12,6 +12,7 @@ import os
 from contextlib import contextmanager
 from pathlib import Path
 import sqlite3
+import sys
 from typing import Generator, Optional, Union
 
 logger = logging.getLogger(__name__)
@@ -19,8 +20,25 @@ logger = logging.getLogger(__name__)
 # Base path of the inv_mng_sys project
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
-# Default production database path inside inv_mng_sys/database/
-DEFAULT_DB_PATH = PROJECT_ROOT / "database" / "ims.db"
+
+def _resolve_default_db_path() -> Path:
+    """Determine default database path based on runtime environment."""
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).resolve().parent
+        portable_db_dir = exe_dir / "database"
+        # If user explicitly placed a writable database folder next to exe, use it
+        if portable_db_dir.exists() and os.access(portable_db_dir, os.W_OK):
+            return portable_db_dir / "ims.db"
+        # Standard Windows persistent user storage for installed applications
+        appdata = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA")
+        if appdata:
+            return Path(appdata) / "InventoryManagementSystem" / "database" / "ims.db"
+        return portable_db_dir / "ims.db"
+    return PROJECT_ROOT / "database" / "ims.db"
+
+
+# Default production database path
+DEFAULT_DB_PATH = _resolve_default_db_path()
 
 
 def get_database_path(custom_path: Optional[Union[str, Path]] = None) -> Path:
@@ -29,14 +47,14 @@ def get_database_path(custom_path: Optional[Union[str, Path]] = None) -> Path:
     Order of precedence:
     1. Explicit custom_path argument (e.g., for testing)
     2. IMS_DATABASE_PATH environment variable
-    3. Default persistent path: inv_mng_sys/database/ims.db
+    3. Default persistent path: LOCALAPPDATA (if frozen) or inv_mng_sys/database/ims.db
     """
     if custom_path is not None:
         target_path = Path(custom_path)
     elif "IMS_DATABASE_PATH" in os.environ:
         target_path = Path(os.environ["IMS_DATABASE_PATH"])
     else:
-        target_path = DEFAULT_DB_PATH
+        target_path = _resolve_default_db_path()
 
     # Ensure parent directory exists for persistent local storage
     target_path.parent.mkdir(parents=True, exist_ok=True)
