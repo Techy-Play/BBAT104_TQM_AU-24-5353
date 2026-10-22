@@ -45,6 +45,24 @@ The official project guidelines associate Q13 with **Search Filters, Sorting Opt
 
 ---
 
+## 1.3 Target User Definition
+
+* **One local user: store or warehouse owner / manager**
+
+The system is explicitly designed for a single store, shop, warehouse, or small-business owner or inventory manager operating locally on a standalone personal computer or dedicated workstation terminal.
+
+### User Characteristics & Operational Profile:
+- **User Role**: Store Owner, Warehouse Supervisor, or Inventory Operations Manager.
+- **Operational Context**: Directly oversees physical inventory items, stock levels, suppliers, and unit prices.
+- **Key Operational Needs**:
+  - Rapid search and retrieval of item details (SKU, quantity, category, supplier) during daily operations (Q13 goal).
+  - Clear, immediate threshold alerts for low-stock (quantity <= 10) and out-of-stock items via dashboard metrics.
+  - Complete operational independence in physical retail or warehouse environments without requiring cloud subscriptions or continuous internet access.
+  - Straightforward, password-protected local authentication without complex multi-tenant administration.
+  - Absolute control over local data retention, including preserving data across software updates or performing an authenticated reset.
+
+---
+
 # 2. Scope of the System
 
 ## 2.1 In-Scope
@@ -59,6 +77,7 @@ The following functionality is included within the scope of the project:
 - Keep Me Logged In option.
 - Ability to change the Keep Me Logged In preference from Settings.
 - Local authentication without Internet connectivity.
+- User account deletion and database reset (Danger Zone) requiring current master password verification.
 
 ### Inventory Management
 - Add new inventory items.
@@ -83,6 +102,8 @@ The following functionality is included within the scope of the project:
 - Authentication interface.
 - Error and validation messages.
 - Local database management.
+- Standalone Windows installer (setup.exe) and uninstaller with intelligent data preservation options.
+- Single-view non-scrolling UI layouts and rapid keyboard navigation (Tab, Shift-Tab, Enter, Escape).
 
 ### TQM / Quality Analysis
 The project will also support the documentation and analysis required by the TQM course, including:
@@ -156,6 +177,13 @@ The overall architecture will be:
 ```
 
 The application will not require an Internet connection for normal operation.
+
+## 3.1 User Class & Operational Environment
+
+The system is designed for:
+* **One local user: store or warehouse owner / manager**
+
+The operational environment is an offline personal computer running Microsoft Windows 10 or Windows 11. No network connection, background daemons, or remote database servers are utilized.
 
 ---
 
@@ -508,6 +536,16 @@ At minimum, it shall provide:
 
 Additional settings may be introduced if they support usability or quality improvement without changing the project's core scope.
 
+## FR-09B - Account Deletion & Database Reset (Danger Zone)
+
+The system shall provide an explicit, password-protected account deletion and database reset capability in the Settings interface.
+
+- The system shall display an explicit, unrecoverable warning modal informing the store/warehouse owner/manager that all stored products, categories, user details, and active sessions will be permanently erased.
+- The system shall require the user to re-enter their current master password to confirm deletion.
+- If an incorrect or blank password is provided, the system shall reject the action and display an immediate error message.
+- Upon valid password confirmation, the system shall execute an atomic wipe of all products, users, and session settings, and run a SQLite VACUUM operation.
+- Once reset, the system shall immediately terminate the session and route to the First-Run Setup wizard for clean onboarding.
+
 ---
 
 # 11. Database Requirements
@@ -660,7 +698,7 @@ The official guidelines specifically describe this development environment and t
 
 The following assumptions are made for Version 1.0:
 
-1. The application will initially be designed for a single local computer/user environment.
+1. The application is designed for one local user: store or warehouse owner / manager operating on a single local computer.
 2. SQLite will be sufficient for the expected inventory dataset.
 3. The user has access to a Windows computer for running the packaged application.
 4. Inventory data will be managed through the application rather than directly through SQLite.
