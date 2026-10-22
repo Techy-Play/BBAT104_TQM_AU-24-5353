@@ -17,7 +17,8 @@ from app.authentication.login import (
     update_keep_logged_in_preference,
     update_user_profile,
 )
-from app.authentication.security import UserSession
+from app.authentication.security import UserSession, verify_password
+from app.database.connection import get_db_connection
 from app.database.queries import execute_update_or_delete, fetch_one
 
 logger = logging.getLogger(__name__)
@@ -94,3 +95,49 @@ class SettingsService:
         except Exception as exc:
             logger.error("Failed to persist theme preference: %s", exc)
         return val
+
+    @staticmethod
+    def delete_user_and_reset_database(
+        user_id: int,
+        password: str,
+        custom_path: Optional[Union[str, Path]] = None,
+    ) -> bool:
+        """Verify user's password and permanently delete user, inventory, and session data.
+        
+        Raises:
+            ValueError: If password is incorrect or user account does not exist.
+        """
+        if not password or not password.strip():
+            raise ValueError("Current password is required to confirm account deletion.")
+
+        sql = "SELECT id, password_hash, salt, username FROM users WHERE id = ?;"
+        row = fetch_one(sql, (user_id,), custom_path=custom_path)
+        if not row:
+            raise ValueError("User account not found.")
+
+        if not verify_password(password, row["password_hash"], row["salt"]):
+            logger.warning("Account deletion aborted: incorrect password for user ID %s.", user_id)
+            raise ValueError("Incorrect password. Account deletion cancelled.")
+
+        logger.warning(
+            "Permanently deleting user '%s' (ID %s) and resetting local database...",
+            row["username"],
+            user_id,
+        )
+
+        with get_db_connection(custom_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM products;")
+            cursor.execute("DELETE FROM users;")
+            cursor.execute("DELETE FROM app_settings;")
+            conn.commit()
+
+        # Reclaim space and vacuum
+        try:
+            with get_db_connection(custom_path) as conn:
+                conn.execute("VACUUM;")
+        except Exception as exc:
+            logger.debug("Vacuum after reset skipped: %s", exc)
+
+        logger.info("Database reset complete. All products, users, and session settings cleared.")
+        return True

@@ -33,121 +33,146 @@ from app.ui.theme import (
 logger = logging.getLogger(__name__)
 
 
-class FirstRunSetupFrame(ctk.CTkScrollableFrame):
-    """First-run setup wizard frame collecting profile and security credentials."""
+class FirstRunSetupFrame(ctk.CTkFrame):
+    """First-run setup wizard frame collecting profile and security credentials in a clean non-scrolling card."""
 
     def __init__(
         self,
         master,
         on_success: Callable[[UserSession], None],
+        reset_notice: bool = False,
+        db_path: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(master, fg_color="transparent", **kwargs)
         self.on_success = on_success
+        self.reset_notice = reset_notice
+        self.db_path = db_path
 
         self._build_ui()
 
     def _build_ui(self) -> None:
-        container = CardFrame(self, width=460)
-        container.pack(expand=True, pady=30, padx=20)
+        container = CardFrame(self, width=640)
+        container.pack(expand=True, padx=20, pady=16)
 
-        # Title and intro
+        # Title & Subtitle Header
+        header_frame = ctk.CTkFrame(container, fg_color="transparent")
+        header_frame.pack(fill="x", padx=24, pady=(20, 6))
+
         title = ctk.CTkLabel(
-            container,
-            text="Welcome to IMS",
+            header_frame,
+            text="📦 Inventory Management System",
             font=FONT_TITLE,
             text_color=COLOR_TEXT_PRIMARY,
         )
-        title.pack(pady=(28, 4))
+        title.pack(anchor="w")
 
         subtitle = ctk.CTkLabel(
-            container,
-            text="Initial First-Run Setup (Offline Local Database)",
-            font=FONT_SUBTITLE,
-            text_color=COLOR_TEXT_MUTED,
-        )
-        subtitle.pack(pady=(0, 20))
-
-        # Instructions callout
-        desc = ctk.CTkLabel(
-            container,
-            text="Configure your local profile and secure your inventory system.\nAll data is stored locally on this machine.",
+            header_frame,
+            text="Initial First-Run Setup • Secure Offline Local Storage",
             font=FONT_SMALL,
             text_color=COLOR_TEXT_MUTED,
-            justify="center",
         )
-        desc.pack(pady=(0, 20), padx=25)
+        subtitle.pack(anchor="w", pady=(2, 0))
 
-        # Form fields
+        # 2-Column Responsive Form Grid (All fields visible at once without scrolling)
+        form_grid = ctk.CTkFrame(container, fg_color="transparent")
+        form_grid.pack(fill="x", padx=20, pady=(8, 4))
+        form_grid.grid_columnconfigure((0, 1), weight=1, uniform="col_setup")
+
+        # Column 0: User & Store Identity
         self.entry_name = LabeledEntry(
-            container,
-            label_text="User / Full Name",
+            form_grid,
+            label_text="User / Full Name *",
             placeholder="e.g. Lokesh Paneru",
-            width=380,
+            width=280,
         )
-        self.entry_name.pack(pady=6)
+        self.entry_name.grid(row=0, column=0, sticky="ew", padx=(0, 10), pady=4)
 
         self.entry_org = LabeledEntry(
-            container,
-            label_text="Store / Warehouse / Business Name",
-            placeholder="e.g. Apex Hardware & Electronics",
-            width=380,
+            form_grid,
+            label_text="Store / Business Name *",
+            placeholder="e.g. Apex Hardware",
+            width=280,
         )
-        self.entry_org.pack(pady=6)
+        self.entry_org.grid(row=1, column=0, sticky="ew", padx=(0, 10), pady=4)
 
         self.entry_user = LabeledEntry(
-            container,
-            label_text="Username",
+            form_grid,
+            label_text="Username (Account ID) *",
             placeholder="e.g. admin",
-            width=380,
+            width=280,
         )
-        self.entry_user.pack(pady=6)
+        self.entry_user.grid(row=2, column=0, sticky="ew", padx=(0, 10), pady=4)
 
+        # Column 1: Password & Security
         self.entry_pwd = LabeledEntry(
-            container,
-            label_text="Password",
-            placeholder="At least 6 characters",
+            form_grid,
+            label_text="Password (min 6 chars) *",
+            placeholder="Create master password",
             is_password=True,
-            width=380,
+            width=280,
         )
-        self.entry_pwd.pack(pady=6)
+        self.entry_pwd.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=4)
 
         self.entry_confirm = LabeledEntry(
-            container,
-            label_text="Confirm Password",
+            form_grid,
+            label_text="Confirm Password *",
             placeholder="Re-enter password",
             is_password=True,
-            width=380,
+            width=280,
         )
-        self.entry_confirm.pack(pady=6)
+        self.entry_confirm.grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=4)
 
-        # Keyboard accessibility: bind Enter key to submit
-        self.entry_pwd.entry.bind("<Return>", lambda _e: self._handle_setup())
-        self.entry_confirm.entry.bind("<Return>", lambda _e: self._handle_setup())
+        # Preferences row in Column 1
+        pref_box = ctk.CTkFrame(form_grid, fg_color="transparent")
+        pref_box.grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=4)
 
-        # Keep Me Logged In checkbox
         self.chk_keep_logged_in = ctk.CTkCheckBox(
-            container,
-            text="Keep Me Logged In on this computer",
+            pref_box,
+            text="Keep Me Logged In on this PC",
             font=FONT_BODY,
             checkbox_width=20,
             checkbox_height=20,
             corner_radius=4,
         )
-        self.chk_keep_logged_in.pack(pady=12, padx=40, anchor="w")
+        self.chk_keep_logged_in.pack(anchor="w", pady=(8, 2))
+        self.chk_keep_logged_in.select()
+
+        # Security Callout Box
+        security_callout = ctk.CTkFrame(container, fg_color=COLOR_SURFACE_BG, corner_radius=6)
+        security_callout.pack(fill="x", padx=20, pady=(6, 4))
+        ctk.CTkLabel(
+            security_callout,
+            text="🔒 Offline Local Security: Salted PBKDF2 (SHA-256) password encryption. No internet connection required.",
+            font=FONT_SMALL,
+            text_color=COLOR_TEXT_MUTED,
+        ).pack(padx=12, pady=6)
 
         # Feedback banner
         self.banner = MessageBanner(container)
-        self.banner.pack(pady=(4, 8), padx=20)
+        self.banner.pack(fill="x", padx=20, pady=(4, 4))
+        if self.reset_notice:
+            self.banner.show_info("Database and user account were reset. Please configure your new administrator profile.")
 
         # Action button
         self.btn_submit = PrimaryButton(
             container,
-            text="Complete Setup & Launch",
+            text="Complete Setup & Launch System",
             command=self._handle_setup,
-            width=380,
+            width=300,
+            height=36,
         )
-        self.btn_submit.pack(pady=(8, 28))
+        self.btn_submit.pack(pady=(6, 4))
+
+        # Keyboard shortcut hint
+        hint_lbl = ctk.CTkLabel(
+            container,
+            text="⌨️ Tab: Next field • Shift+Tab: Prev • Enter: Complete Setup",
+            font=FONT_SMALL,
+            text_color=COLOR_TEXT_MUTED,
+        )
+        hint_lbl.pack(pady=(0, 16))
 
         # Setup Tab/Shift-Tab keyboard navigation and Enter hotkey
         setup_form_keyboard_navigation(
@@ -184,6 +209,7 @@ class FirstRunSetupFrame(ctk.CTkScrollableFrame):
                 password=pwd,
                 confirm_password=confirm,
                 keep_logged_in=keep,
+                custom_path=self.db_path,
             )
             logger.info("First-run setup completed for '%s'.", session.username)
             self.on_success(session)

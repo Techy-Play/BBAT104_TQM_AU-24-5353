@@ -203,6 +203,10 @@ class MessageBanner(ctk.CTkLabel):
         """Display a success message in green."""
         self.configure(text=message, text_color=COLOR_SUCCESS)
 
+    def show_info(self, message: str) -> None:
+        """Display an informational message in blue/accent."""
+        self.configure(text=message, text_color=COLOR_INFO)
+
     def clear(self) -> None:
         """Clear the banner text."""
         self.configure(text="")

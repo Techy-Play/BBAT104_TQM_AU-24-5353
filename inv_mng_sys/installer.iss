@@ -59,4 +59,81 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilen
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
-// Optional custom Pascal script hooks if needed
+var
+  KeepExistingData: Boolean;
+
+// Prompt user at install time if earlier database/data exists
+function InitializeSetup(): Boolean;
+var
+  LocalDbPath: String;
+  UserChoice: Integer;
+begin
+  Result := True;
+  KeepExistingData := True;
+  LocalDbPath := ExpandConstant('{localappdata}\InventoryManagementSystem\database\ims.db');
+
+  if FileExists(LocalDbPath) then
+  begin
+    UserChoice := MsgBox(
+      'An existing inventory database and user account were found from an earlier installation.' + #13#10#13#10 +
+      'Do you want to KEEP and use your existing data?' + #13#10#13#10 +
+      '• Click YES to PRESERVE existing data (all products and users will be retained).' + #13#10 +
+      '• Click NO to START FRESH (older data will be wiped for a clean initial setup).',
+      mbConfirmation, MB_YESNO
+    );
+    if UserChoice = IDNO then
+    begin
+      KeepExistingData := False;
+    end;
+  end;
+end;
+
+// Handle fresh start cleanup during installation if requested
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  DataDir: String;
+  DbFile: String;
+  BackupFile: String;
+begin
+  if (CurStep = ssPostInstall) and (not KeepExistingData) then
+  begin
+    DataDir := ExpandConstant('{localappdata}\InventoryManagementSystem\database');
+    DbFile := DataDir + '\ims.db';
+    if FileExists(DbFile) then
+    begin
+      BackupFile := DataDir + '\ims_backup_' + GetDateTimeString('yyyymmdd_hhnnss', #0, #0) + '.bak';
+      RenameFile(DbFile, BackupFile);
+      DeleteFile(DbFile + '-wal');
+      DeleteFile(DbFile + '-shm');
+      DeleteFile(DbFile + '-journal');
+    end;
+  end;
+end;
+
+// Prompt user at uninstall time to keep or remove data
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  UserChoice: Integer;
+  DataRoot: String;
+  LocalDbPath: String;
+begin
+  if CurUninstallStep = usUninstall then
+  begin
+    DataRoot := ExpandConstant('{localappdata}\InventoryManagementSystem');
+    LocalDbPath := DataRoot + '\database\ims.db';
+
+    if FileExists(LocalDbPath) or DirExists(DataRoot) then
+    begin
+      UserChoice := MsgBox(
+        'Do you want to KEEP your inventory database and user account details on this computer?' + #13#10#13#10 +
+        '• Click YES to keep your data safe. If you reinstall IMS later, your records will be preserved.' + #13#10 +
+        '• Click NO to permanently remove all database files and user records.',
+        mbConfirmation, MB_YESNO
+      );
+      if UserChoice = IDNO then
+      begin
+        DelTree(DataRoot, True, True, True);
+      end;
+    end;
+  end;
+end;

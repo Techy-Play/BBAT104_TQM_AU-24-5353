@@ -130,13 +130,15 @@ class IMSApplication(ctk.CTk):
             logger.info("No active session: routing to login.")
             self.show_login()
 
-    def show_setup(self) -> None:
-        """Display the first-run account setup screen."""
+    def show_setup(self, reset_notice: bool = False) -> None:
+        """Display the first-run account setup screen in a compact non-scrolling card."""
         self._clear_all()
-        self._resize_and_center(520, 680, 480, 580)
+        self._resize_and_center(680, 520, 620, 480)
         self.current_view = FirstRunSetupFrame(
             master=self,
             on_success=self.show_app_shell,
+            reset_notice=reset_notice,
+            db_path=self.db_path,
         )
         self.current_view.pack(fill="both", expand=True)
 
@@ -302,9 +304,16 @@ class IMSApplication(ctk.CTk):
             master=self.content_container,
             user_session=self.current_session,
             on_profile_updated=self._on_profile_updated,
+            on_account_deleted=self.handle_account_deleted,
             db_path=self.db_path,
         )
         self.current_view.pack(fill="both", expand=True)
+
+    def handle_account_deleted(self) -> None:
+        """Handle complete account and database reset by clearing session and routing to setup."""
+        logger.info("User account deleted and database reset. Routing to setup wizard.")
+        self.current_session = None
+        self.show_setup(reset_notice=True)
 
     def _on_profile_updated(self, updated_session: UserSession) -> None:
         """Update active session attributes across the application."""

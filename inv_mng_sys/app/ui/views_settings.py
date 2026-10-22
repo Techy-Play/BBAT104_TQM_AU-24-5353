@@ -10,6 +10,7 @@ from app.authentication.security import UserSession
 from app.settings.settings import SettingsService
 from app.ui.components import (
     CardFrame,
+    DangerButton,
     LabeledEntry,
     MessageBanner,
     PrimaryButton,
@@ -18,6 +19,7 @@ from app.ui.components import (
 )
 from app.ui.theme import (
     COLOR_CARD_BG,
+    COLOR_DANGER,
     COLOR_PRIMARY,
     COLOR_SECONDARY,
     COLOR_SECONDARY_HOVER,
@@ -37,6 +39,158 @@ from app.ui.theme import (
 logger = logging.getLogger(__name__)
 
 
+class DeleteAccountModal(ctk.CTkToplevel):
+    """Modal dialog prompting user with explicit warning and password confirmation to delete account and database."""
+
+    def __init__(
+        self,
+        parent,
+        user_session: UserSession,
+        on_confirmed: Callable[[], None],
+        db_path: Optional[str] = None,
+    ):
+        super().__init__(parent)
+        self.user_session = user_session
+        self.on_confirmed = on_confirmed
+        self.db_path = db_path
+
+        self.title("Confirm Account & Database Deletion")
+        self.geometry("540x410")
+        self.minsize(500, 370)
+        self.resizable(False, False)
+        self.transient(parent)
+        self.grab_set()
+
+        # Center on parent
+        self.update_idletasks()
+        try:
+            x = parent.winfo_x() + (parent.winfo_width() // 2) - 270
+            y = parent.winfo_y() + (parent.winfo_height() // 2) - 205
+            self.geometry(f"+{max(0, x)}+{max(0, y)}")
+        except Exception:
+            pass
+
+        self._build_ui()
+
+    def _build_ui(self) -> None:
+        card = CardFrame(self)
+        card.pack(fill="both", expand=True, padx=16, pady=16)
+
+        # Danger Header
+        header = ctk.CTkFrame(card, fg_color="transparent")
+        header.pack(fill="x", padx=20, pady=(16, 6))
+
+        ctk.CTkLabel(
+            header,
+            text="⚠️ Delete Account & Reset Database",
+            font=FONT_HEADING,
+            text_color=COLOR_DANGER,
+        ).pack(anchor="w")
+
+        # Explicit Warning Callout Box
+        warning_box = ctk.CTkFrame(card, fg_color=COLOR_SECONDARY, corner_radius=6)
+        warning_box.pack(fill="x", padx=20, pady=(0, 10))
+
+        warning_text = (
+            "ATTENTION: This action is permanent and IRREVERSIBLE.\n\n"
+            f"• All inventory records and stored products will be permanently erased.\n"
+            f"• Your user account (@{self.user_session.username}) will be deleted.\n"
+            "• Active sessions will be terminated with NO WAY to recover data.\n\n"
+            "The application will freshly restart and present the First-Run Setup wizard."
+        )
+        ctk.CTkLabel(
+            warning_box,
+            text=warning_text,
+            font=FONT_SMALL,
+            text_color=COLOR_TEXT_PRIMARY,
+            justify="left",
+            wraplength=460,
+        ).pack(padx=14, pady=10, anchor="w")
+
+        # Password confirmation input
+        self.entry_pwd = LabeledEntry(
+            card,
+            label_text="Enter Your Current Password to Confirm",
+            is_password=True,
+            placeholder="Type your current password",
+            width=460,
+        )
+        self.entry_pwd.pack(padx=20, pady=(0, 4))
+
+        # Feedback banner
+        self.banner = MessageBanner(card)
+        self.banner.pack(fill="x", padx=20, pady=(0, 4))
+
+        # Action Buttons Footer
+        btn_row = ctk.CTkFrame(card, fg_color="transparent")
+        btn_row.pack(fill="x", side="bottom", padx=20, pady=(6, 16))
+
+        self.btn_cancel = SecondaryButton(
+            btn_row,
+            text="Cancel",
+            command=self.destroy,
+            width=100,
+            height=34,
+        )
+        self.btn_cancel.pack(side="right", padx=(10, 0))
+
+        self.btn_delete = DangerButton(
+            btn_row,
+            text="Permanently Delete Everything",
+            command=self._handle_confirm_delete,
+            width=230,
+            height=34,
+        )
+        self.btn_delete.pack(side="right")
+
+        # Fast keyboard navigation
+        setup_form_keyboard_navigation(
+            widgets=[self.entry_pwd, self.btn_delete, self.btn_cancel],
+            on_submit=self._handle_confirm_delete,
+            on_cancel=self.destroy,
+            toplevel=self,
+        )
+        self.btn_delete.bind("<Return>", lambda _e: (self._handle_confirm_delete(), "break")[1])
+        self.btn_delete.bind("<space>", lambda _e: (self._handle_confirm_delete(), "break")[1])
+        self.btn_cancel.bind("<Return>", lambda _e: (self.destroy(), "break")[1])
+        self.btn_cancel.bind("<space>", lambda _e: (self.destroy(), "break")[1])
+
+        # Immediate auto-focus for instant typing
+        self._focus_after_id = self.after(50, self.entry_pwd.focus)
+
+    def destroy(self):
+        try:
+            if hasattr(self, "_focus_after_id") and self._focus_after_id:
+                self.after_cancel(self._focus_after_id)
+        except Exception:
+            pass
+        super().destroy()
+
+    def _handle_confirm_delete(self) -> None:
+        self.banner.clear()
+        pwd = self.entry_pwd.get_value()
+
+        if not pwd:
+            self.banner.show_error("Please enter your current password to confirm deletion.")
+            return
+
+        try:
+            SettingsService.delete_user_and_reset_database(
+                user_id=self.user_session.id,
+                password=pwd,
+                custom_path=self.db_path,
+            )
+            # Destroy modal
+            self.destroy()
+            # Trigger application restart/reroute to setup
+            self.on_confirmed()
+        except ValueError as val_err:
+            self.banner.show_error(str(val_err))
+        except Exception as exc:
+            logger.exception("Failed to delete account.")
+            self.banner.show_error(f"Account deletion failed: {exc}")
+
+
 class SettingsView(ctk.CTkScrollableFrame):
     """Application settings and user profile management view."""
 
@@ -45,12 +199,14 @@ class SettingsView(ctk.CTkScrollableFrame):
         master,
         user_session: UserSession,
         on_profile_updated: Callable[[UserSession], None],
+        on_account_deleted: Optional[Callable[[], None]] = None,
         db_path: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(master, fg_color="transparent", **kwargs)
         self.user_session = user_session
         self.on_profile_updated = on_profile_updated
+        self.on_account_deleted = on_account_deleted
         self.db_path = db_path
 
         self._build_ui()
@@ -277,6 +433,37 @@ class SettingsView(ctk.CTkScrollableFrame):
 
         ctk.CTkLabel(card_info, text="").pack(pady=4)
 
+        # Danger Zone Card (Delete Account & Reset Database)
+        card_danger = CardFrame(container)
+        card_danger.pack(fill="x", pady=(0, 20))
+
+        d_title = ctk.CTkLabel(
+            card_danger,
+            text="⚠️ Danger Zone: Delete Account & Reset Database",
+            font=FONT_SECTION,
+            text_color=COLOR_DANGER,
+        )
+        d_title.pack(anchor="w", padx=20, pady=(18, 6))
+
+        d_desc = ctk.CTkLabel(
+            card_danger,
+            text="Permanently delete your user account and wipe the entire local inventory database. All stored products, categories, active sessions, and local data will be permanently erased. This action cannot be reversed.",
+            font=FONT_SMALL,
+            text_color=COLOR_TEXT_MUTED,
+            wraplength=600,
+            justify="left",
+        )
+        d_desc.pack(anchor="w", padx=20, pady=(0, 14))
+
+        self.btn_delete_user = DangerButton(
+            card_danger,
+            text="Delete User & Reset Database",
+            command=self._handle_open_delete_modal,
+            width=230,
+            height=36,
+        )
+        self.btn_delete_user.pack(anchor="w", padx=20, pady=(0, 20))
+
     def _handle_save_profile(self) -> None:
         self.profile_banner.clear()
         name = self.entry_name.get_value().strip()
@@ -337,3 +524,17 @@ class SettingsView(ctk.CTkScrollableFrame):
         ctk.set_appearance_mode(mode)
         item = THEME_MODES.get(mode, THEME_MODES["system"])
         self.theme_banner.show_success(f"{item['symbol']} {item['display_name']} applied and saved successfully.")
+
+    def _handle_open_delete_modal(self) -> None:
+        """Open the password-protected account deletion confirmation dialog."""
+        DeleteAccountModal(
+            parent=self.winfo_toplevel(),
+            user_session=self.user_session,
+            on_confirmed=self._on_account_deleted_callback,
+            db_path=self.db_path,
+        )
+
+    def _on_account_deleted_callback(self) -> None:
+        """Propagate account deletion event to top-level application coordinator."""
+        if self.on_account_deleted:
+            self.on_account_deleted()
