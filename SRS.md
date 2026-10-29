@@ -5,10 +5,14 @@
 
 **Course:** BBAT104 — Fundamentals of Total Quality Management  
 **Academic Session:** 2026–27  
-**Project Type:** Offline Desktop Application  
+**Student Name:** Lokesh Paneru  
+**Roll Number:** 2410303003  
+**Section:** C  
+**Project Type:** Standalone Offline Desktop Application  
 **Version:** 1.0  
-**Technology:** Python 3.x, CustomTkinter, SQLite3  
-**Primary Quality Objective:** Faster Search & Retrieval
+**Technology:** Python 3.11.x, CustomTkinter 6.0, SQLite3  
+**Primary Quality Objective:** Q13 — Faster Search & Retrieval  
+**Target User:** One local user: store or warehouse owner / manager
 
 ---
 
@@ -41,7 +45,18 @@ The TQM quality goal assigned to this project is:
 
 > **Q13 — Faster Search & Retrieval**
 
-The official project guidelines associate Q13 with **Search Filters, Sorting Options, Dashboard Quick-Search, and Database Query Optimization**. These four capabilities constitute the core MVP quality features of this project. 
+The official project guidelines associate Q13 with **Search Filters, Sorting Options, Dashboard Quick-Search, and Database Query Optimization** (four listed entries in the official quality table). However, the general course project guidelines simultaneously instruct students to implement five distinct feature areas.
+
+In this implementation, **Dashboard** and **Dashboard Quick-Search** serve fundamentally different operational purposes:
+- The **Dashboard** acts as an operational monitoring cockpit providing real-time inventory statistics, valuation metrics, visual threshold indicators (low-stock and out-of-stock), and interactive deep links.
+- The **Dashboard Quick-Search** acts as a fast multi-attribute retrieval bar across Product ID, Name, Category, and Supplier.
+
+Accordingly, the application documents and implements the following **five feature areas**:
+1. **Dashboard:** Inventory overview, stock statistics, valuation, threshold indicators, and deep links.
+2. **Dashboard Quick-Search:** High-speed product searching across Product ID, Name, Category, and Supplier.
+3. **Search Filters:** Granular multi-attribute filtering by Category, Supplier, Stock Status, and text query.
+4. **Sorting Options:** Strict whitelisted ascending and descending sorting across supported inventory attributes.
+5. **Database Query Optimization:** SQLite B-tree indexes, WAL mode, parameterized queries, and empirical benchmark evaluation.
 
 ---
 
@@ -87,13 +102,12 @@ The following functionality is included within the scope of the project:
 - Store inventory information in SQLite.
 - Maintain persistent data between application sessions.
 
-### Q13 — Faster Search & Retrieval
-- Dashboard Quick-Search.
-- Search Filters.
-- Sorting Options.
-- Optimized SQLite database queries.
-- Database indexing where appropriate.
-- Measurement of search/retrieval performance.
+### Q13 — Faster Search & Retrieval (Five Implemented Feature Areas)
+- **1. Dashboard:** Real-time stock statistics, total valuation, low-stock/out-of-stock indicators, deep links, and recent inventory overview.
+- **2. Dashboard Quick-Search:** Instant multi-attribute search across Product ID, Name, Category, and Supplier.
+- **3. Search Filters:** Composable multi-dimensional filtering by Category, Supplier, Stock Status, and text query.
+- **4. Sorting Options:** Whitelist-validated ascending and descending sorting across all key inventory attributes.
+- **5. Database Query Optimization:** Strategic SQLite B-tree indexing, WAL concurrency, parameterized queries, and empirical benchmarking across 1,000, 10,000, and 50,000 products.
 
 ### Application
 - Dashboard.
@@ -426,13 +440,42 @@ The application shall not recreate or reset the database during normal startup.
 
 ---
 
-# 8. Q15 — Faster Search & Retrieval Requirements
+# 8. Q13 — Faster Search & Retrieval Requirements
 
 This section represents the **core quality objective of the project**.
 
-The official Q13 goal is **Faster Search & Retrieval**, with the suggested features of Search Filters, Sorting Options, Dashboard Quick-Search, and Database Query Optimization. 
+The official BBAT104 quality goal table lists four suggested feature entries for Q13 (*Search Filters, Sorting Options, Dashboard Quick-Search, and Database Query Optimization*). To satisfy the course requirement of five implemented features while reflecting the actual system implementation, the system treats **Dashboard Overview & Real-Time Stock Statistics** and **Dashboard Quick-Search** as two separate functional areas:
+1. **Feature 1: Dashboard Overview & Real-Time Stock Statistics (FR-15)**
+2. **Feature 2: Dashboard Quick-Search (FR-16)**
+3. **Feature 3: Search Filters (FR-17)**
+4. **Feature 4: Sorting Options (FR-18)**
+5. **Feature 5: Database Query Optimization & Indexing (FR-19, FR-20)**
 
-## FR-16 — Dashboard Quick-Search
+---
+
+## FR-15 — Dashboard Overview & Real-Time Stock Statistics (Feature 1)
+
+The system shall provide a dedicated dashboard view (`app/dashboard/dashboard.py`) serving as an operational monitoring center for inventory state.
+
+### Capabilities & Specifications:
+1. **Real-Time Aggregate Metrics**: The dashboard shall execute SQLite aggregate queries (`get_inventory_statistics()`) computing:
+   - Total distinct products count (`COUNT(*)`).
+   - Total physical items in stock (`COALESCE(SUM(quantity), 0)`).
+   - Total inventory monetary valuation (`COALESCE(SUM(quantity * price), 0.0)`).
+   - Low-stock items count (`SUM(CASE WHEN stock_status = 'Low Stock' THEN 1 ELSE 0 END)`), where quantity <= 10.
+   - Out-of-stock items count (`SUM(CASE WHEN stock_status = 'Out of Stock' THEN 1 ELSE 0 END)`), where quantity == 0.
+2. **Interactive Deep Links**:
+   - Metric cards shall provide clickable deep-link buttons (e.g., *"View Low Stock ↗"*, *"View Out of Stock ↗"*).
+   - Clicking a metric card link shall immediately transition to the full Inventory workspace with the corresponding stock status filter pre-selected and applied.
+3. **Recent Inventory Overview**:
+   - The dashboard shall display an overview table of the top 15 recently modified products.
+   - For each item, the overview shall present Product ID, Name, Category, Supplier, Quantity, Unit Price, Stock Status badge, and instant action buttons (*"View"* details modal and *"Open ↗"* in inventory).
+4. **Flicker-Free Live Refresh**:
+   - A dedicated *"Refresh"* button shall re-query SQLite without reconstructing UI widget trees, ensuring zero screen flicker.
+
+---
+
+## FR-16 — Dashboard Quick-Search (Feature 2)
 
 The dashboard shall provide a prominent quick-search field.
 
@@ -448,7 +491,7 @@ The final searchable fields will be determined during database design.
 
 ---
 
-## FR-17 — Search Filters
+## FR-17 — Search Filters (Feature 3)
 
 The inventory interface shall provide filters allowing the user to narrow the displayed results.
 
@@ -464,7 +507,7 @@ Multiple filters should be capable of being applied together where technically a
 
 ---
 
-## FR-18 — Sorting Options
+## FR-18 — Sorting Options (Feature 4)
 
 The system shall allow inventory records to be sorted according to relevant attributes.
 
@@ -481,7 +524,7 @@ The user should be able to choose ascending or descending order where applicable
 
 ---
 
-## FR-19 — Database Query Optimization
+## FR-19 — Database Query Optimization & Indexing (Feature 5)
 
 The application shall use optimized SQLite queries for inventory retrieval.
 
@@ -491,7 +534,7 @@ The application shall avoid unnecessarily loading the complete inventory dataset
 
 ---
 
-## FR-20 — Search Performance Measurement
+## FR-20 — Search Performance Measurement & Benchmarking
 
 The system development process shall include measurement of search/retrieval performance.
 
@@ -659,12 +702,13 @@ The primary quality requirement is:
 
 > **The system shall provide fast and efficient retrieval of inventory information while returning accurate and relevant results.**
 
-The project shall focus on four Q13 capabilities:
+The project implements five feature areas under the Q13 quality objective:
 
-1. Search Filters.
-2. Sorting Options.
-3. Dashboard Quick-Search.
-4. Database Query Optimization.
+1. **Dashboard:** Real-time stock statistics, valuation, threshold alerts, and interactive deep links.
+2. **Dashboard Quick-Search:** Instant multi-attribute search across Product ID, Name, Category, and Supplier.
+3. **Search Filters:** Composable multi-dimensional filtering by Category, Supplier, Stock Status, and text query.
+4. **Sorting Options:** Whitelist-validated ascending and descending sorting across all key inventory attributes.
+5. **Database Query Optimization:** Strategic SQLite B-tree indexing, WAL concurrency, parameterized queries, and empirical benchmarking.
 
 The effectiveness of these capabilities shall be evaluated using measurable evidence rather than only visual demonstration.
 
@@ -704,7 +748,7 @@ The following assumptions are made for Version 1.0:
 4. Inventory data will be managed through the application rather than directly through SQLite.
 5. The application will be distributed as a packaged executable after development.
 6. The exact inventory fields may be refined during database and UI design.
-7. The four Q13 features constitute the core MVP requirements.
+7. The five Q13-related feature areas constitute the core MVP requirements.
 
 ---
 
@@ -725,11 +769,12 @@ The minimum viable product shall contain:
 - Delete inventory record.
 - Persistent SQLite storage.
 
-### Q13 Quality Features
-- Dashboard Quick-Search.
-- Search Filters.
-- Sorting Options.
-- Database Query Optimization.
+### Q13 Quality Features (Five Feature Scope)
+- 1. Dashboard (Overview, KPIs, Thresholds, Deep Links).
+- 2. Dashboard Quick-Search.
+- 3. Search Filters.
+- 4. Sorting Options.
+- 5. Database Query Optimization & Benchmarking.
 
 ### Application
 - CustomTkinter GUI.
@@ -770,12 +815,12 @@ The system shall be considered functionally ready for the base-system review whe
 8. Inventory records can be updated.
 9. Inventory records can be deleted.
 10. Inventory data persists after closing and reopening the application.
-11. Dashboard Quick-Search works.
-12. Search Filters work.
-13. Sorting Options work.
-14. SQLite queries are used for inventory retrieval.
-15. Database optimization mechanisms can be demonstrated.
-16. The application operates without an Internet connection.
+11. Dashboard Overview & Real-Time Stock Statistics work with live aggregate calculations and deep links (FR-15).
+12. Dashboard Quick-Search rapidly retrieves records across Product ID, Name, Category, and Supplier with reset (FR-16).
+13. Search Filters combine Category, Supplier, Stock Status, and text queries with clear action (FR-17).
+14. Sorting Options sort all supported columns ascending and descending using strict whitelisting (FR-18).
+15. Database Query Optimization, indexes, and parameterized queries are verified via benchmarks (FR-19, FR-20).
+16. The application operates completely offline with standalone installer and 100% test pass rate across 55 tests.
 
 ---
 
@@ -801,15 +846,15 @@ After Review 1, development will proceed toward the base system.
 
 The Review 2 target will be:
 
-- Functional CRUD modules.
-- Working authentication.
-- Working dashboard.
-- Working SQLite persistence.
-- Working Search Filters.
-- Working Sorting Options.
-- Working Dashboard Quick-Search.
-- Initial implementation of Database Query Optimization.
-- Demonstrable implementation of the assigned Q13 quality objective.
+- Functional CRUD modules (ProductFormModal, ProductDetailsModal, ConfirmationModal).
+- Working authentication (First-run wizard, salted PBKDF2 hashing, Keep Me Logged In, session tokens).
+- Working Dashboard (Real-time aggregate KPI statistics, threshold badges, deep links, recent overview).
+- Working Dashboard Quick-Search (Instant multi-attribute search across 4 fields with one-click reset).
+- Working Search Filters (Category, Supplier, Stock Status, and text query with clear all).
+- Working Sorting Options (Whitelist-validated ascending and descending sorting across all 9 supported columns).
+- Working SQLite persistence (WAL mode, foreign keys, transaction rollbacks, zero startup database wipe).
+- Working Database Query Optimization (Strategic B-tree indexes, parameterized SQL, repeatable multi-dataset benchmark).
+- Complete automated verification with 55 passing unit tests and standalone Windows installer (`setup.exe`).
 
 The official guidelines require the base CRUD modules and the assigned quality-goal features for Review 2.
 

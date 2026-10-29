@@ -1,5 +1,13 @@
 # Local Authentication & Security Specification
 
+**Course:** BBAT104 – Fundamentals of Total Quality Management  
+**Academic Session:** 2026–27  
+**Student Name:** Lokesh Paneru  
+**Roll Number:** 2410303003  
+**Section:** C  
+**Assigned Quality Goal:** Q13 – Faster Search & Retrieval  
+**Target User:** One local user: store or warehouse owner / manager  
+
 ## Overview
 
 The Inventory Management System (IMS) provides an offline, local-only authentication and session management layer. It protects inventory records and user settings without requiring an Internet connection, third-party authentication services, or cloud infrastructure.

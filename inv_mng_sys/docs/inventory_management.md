@@ -1,9 +1,17 @@
 # Inventory Management & CRUD Specification
 
+**Course:** BBAT104 – Fundamentals of Total Quality Management  
+**Academic Session:** 2026–27  
+**Student Name:** Lokesh Paneru  
+**Roll Number:** 2410303003  
+**Section:** C  
+**Assigned Quality Goal:** Q13 – Faster Search & Retrieval  
+**Target User:** One local user: store or warehouse owner / manager  
+
 ## Overview
 
 The **Inventory Management System (IMS)** provides persistent local inventory tracking adhering to the BBAT104 TQM course requirements. Phase 5 and Phase 6 establish:
-1. **Interactive Dashboard**: Real-time aggregate statistics, personalized greetings, quick-search, and recent item overview.
+1. **Interactive Dashboard**: Real-time aggregate statistics, personalized greetings, quick-search, deep links, and recent item overview.
 2. **Complete Inventory CRUD**: Adding, viewing, updating, and deleting products with strict validation and user confirmation.
 
 ---

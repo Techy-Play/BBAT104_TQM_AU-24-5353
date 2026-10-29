@@ -1,5 +1,13 @@
 # Environment Setup & Execution Instructions
 
+**Course:** BBAT104 – Fundamentals of Total Quality Management  
+**Academic Session:** 2026–27  
+**Student Name:** Lokesh Paneru  
+**Roll Number:** 2410303003  
+**Section:** C  
+**Assigned Quality Goal:** Q13 – Faster Search & Retrieval  
+**Target User:** One local user: store or warehouse owner / manager  
+
 ## 1. Prerequisites
 
 - **Python**: Python 3.11.x (tested on Python 3.11.9)
