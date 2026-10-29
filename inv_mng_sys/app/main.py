@@ -27,6 +27,17 @@ from app.dashboard.dashboard import DashboardFrame
 from app.database.schema import init_database
 from app.inventory.filters import FilterCriteria
 from app.settings.settings import SettingsService
+from app.settings.shortcuts import (
+    ACTION_ADD_ITEM,
+    ACTION_FILTER_LOW_STOCK,
+    ACTION_NAV_DASHBOARD,
+    ACTION_NAV_INVENTORY,
+    ACTION_NAV_SETTINGS,
+    ACTION_QUICK_SEARCH,
+    ACTION_REFRESH,
+    ShortcutManager,
+    shortcut_to_tk_sequences,
+)
 from app.ui.components import CardFrame, DangerButton, SecondaryButton
 from app.ui.theme import (
     COLOR_CARD_BG,
@@ -65,6 +76,8 @@ class IMSApplication(ctk.CTk):
         self.nav_bar: Optional[ctk.CTkFrame] = None
         self.content_container: Optional[ctk.CTkFrame] = None
         self._data_dirty: bool = False
+        self._bound_shortcut_sequences: list[str] = []
+        self.active_shortcuts: dict[str, str] = {}
 
         # Apply persistent theme setting
         saved_theme = SettingsService.get_theme_preference(custom_path=self.db_path)
@@ -112,6 +125,14 @@ class IMSApplication(ctk.CTk):
 
     def _clear_all(self) -> None:
         """Clear all active view widgets and cached views from the window."""
+        for seq in getattr(self, "_bound_shortcut_sequences", []):
+            try:
+                self.unbind_all(seq)
+            except Exception:
+                pass
+        if hasattr(self, "_bound_shortcut_sequences"):
+            self._bound_shortcut_sequences.clear()
+
         if hasattr(self, "views") and self.views:
             for v in list(self.views.values()):
                 try:
@@ -183,6 +204,9 @@ class IMSApplication(ctk.CTk):
         # Build Container for switching views
         self.content_container = ctk.CTkFrame(self, fg_color="transparent")
         self.content_container.pack(fill="both", expand=True)
+
+        # Register global keyboard shortcuts
+        self.register_global_shortcuts()
 
         # Default to Dashboard
         self.show_dashboard_view()
@@ -361,11 +385,114 @@ class IMSApplication(ctk.CTk):
                 on_profile_updated=self._on_profile_updated,
                 on_account_deleted=self.handle_account_deleted,
                 on_currency_changed=self._on_currency_changed,
+                on_shortcuts_changed=self._on_shortcuts_changed,
                 db_path=self.db_path,
             )
 
         self.current_view = self.views["settings"]
         self.current_view.pack(fill="both", expand=True)
+
+    def _on_shortcuts_changed(self, _new_shortcuts: dict[str, str]) -> None:
+        """Re-bind global hotkeys when updated in SettingsView."""
+        logger.info("Re-registering application shortcuts after settings update.")
+        self.register_global_shortcuts()
+
+    def register_global_shortcuts(self) -> None:
+        """Register active keyboard shortcuts globally across the window."""
+        for seq in self._bound_shortcut_sequences:
+            try:
+                self.unbind_all(seq)
+            except Exception:
+                pass
+        self._bound_shortcut_sequences.clear()
+
+        self.active_shortcuts = ShortcutManager.get_shortcuts(custom_path=self.db_path)
+
+        for action_name, sc_str in self.active_shortcuts.items():
+            sequences = shortcut_to_tk_sequences(sc_str)
+            for seq in sequences:
+                handler = self._create_shortcut_handler(action_name)
+                try:
+                    self.bind_all(seq, handler)
+                    self._bound_shortcut_sequences.append(seq)
+                except Exception as exc:
+                    logger.debug("Could not bind sequence '%s' for action '%s': %s", seq, action_name, exc)
+
+    def _create_shortcut_handler(self, action_name: str):
+        return lambda _event: self._dispatch_shortcut_action(action_name)
+
+    def _dispatch_shortcut_action(self, action_name: str) -> str:
+        """Dispatch action for triggered shortcut if no blocking modal is open."""
+        try:
+            focused = self.focus_get()
+            if focused:
+                top = focused.winfo_toplevel()
+                if top != self:
+                    return "break"
+        except Exception:
+            pass
+
+        if action_name == ACTION_ADD_ITEM:
+            self._open_global_add_modal()
+        elif action_name == ACTION_QUICK_SEARCH:
+            self._handle_global_quick_search()
+        elif action_name == ACTION_FILTER_LOW_STOCK:
+            self._handle_global_low_stock()
+        elif action_name == ACTION_NAV_DASHBOARD:
+            self.show_dashboard_view()
+        elif action_name == ACTION_NAV_INVENTORY:
+            self.show_inventory_view()
+        elif action_name == ACTION_NAV_SETTINGS:
+            self.show_settings_view()
+        elif action_name == ACTION_REFRESH:
+            self._handle_global_refresh()
+
+        return "break"
+
+    def _open_global_add_modal(self) -> None:
+        """Triggered by Ctrl+N: open product creation modal dialog from anywhere."""
+        from app.ui.dialogs_inventory import ProductFormModal
+        ProductFormModal(
+            parent=self,
+            on_success=lambda _p: self._on_inventory_data_changed(),
+            product=None,
+            db_path=self.db_path,
+        )
+
+    def _handle_global_quick_search(self) -> None:
+        """Triggered by Ctrl+S: focus quick-search entry field."""
+        if self.current_view == self.views.get("dash"):
+            dash = self.views["dash"]
+            if hasattr(dash, "quick_search_entry") and dash.quick_search_entry.winfo_exists():
+                dash.quick_search_entry.focus_set()
+                dash.quick_search_entry.select_range(0, "end")
+        elif self.current_view == self.views.get("inv"):
+            inv = self.views["inv"]
+            if hasattr(inv, "search_entry") and inv.search_entry.winfo_exists():
+                inv.search_entry.focus_set()
+                inv.search_entry.select_range(0, "end")
+        else:
+            self.show_dashboard_view()
+            dash = self.views.get("dash")
+            if dash and hasattr(dash, "quick_search_entry") and dash.quick_search_entry.winfo_exists():
+                self.after(60, lambda: (
+                    dash.quick_search_entry.focus_set(),
+                    dash.quick_search_entry.select_range(0, "end"),
+                ))
+
+    def _handle_global_low_stock(self) -> None:
+        """Triggered by Ctrl+L: switch to Inventory and sort/filter by Low Stock."""
+        from app.inventory.filters import FilterCriteria
+        self.show_inventory_view(
+            FilterCriteria(stock_status="Low Stock", sort_by="quantity", sort_direction="asc")
+        )
+
+    def _handle_global_refresh(self) -> None:
+        """Triggered by Ctrl+R: refresh current active view."""
+        if self.current_view == self.views.get("dash"):
+            self.views["dash"].refresh_dashboard()
+        elif self.current_view == self.views.get("inv"):
+            self.views["inv"].refresh_products()
 
     def _on_currency_changed(self, _new_currency: str) -> None:
         """Refresh dashboard and inventory views when currency preference changes."""

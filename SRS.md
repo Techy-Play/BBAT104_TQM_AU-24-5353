@@ -110,9 +110,11 @@ The following functionality is included within the scope of the project:
 - **5. Database Query Optimization:** Strategic SQLite B-tree indexing, WAL concurrency, parameterized queries, and empirical benchmarking across 1,000, 10,000, and 50,000 products.
 
 ### Application
-- Dashboard.
-- Settings.
-- Inventory management interface.
+- Dashboard with shop owner capital allocation analysis and restock urgency alerts.
+- Settings with profile management, session preferences, visual theme selection, currency conversion, and custom shortcuts configuration.
+- Inventory management interface with pooled row recycling and real-time CRUD actions.
+- Global keyboard shortcuts (`Ctrl+N`, `Ctrl+S`, `Ctrl+L`, `Ctrl+D`, `Ctrl+I`, `Ctrl+P`, `Ctrl+R`) and custom key mapping.
+- Currency display and automatic value conversion (`1 USD = 83 INR`).
 - Authentication interface.
 - Error and validation messages.
 - Local database management.
@@ -589,6 +591,32 @@ The system shall provide an explicit, password-protected account deletion and da
 - Upon valid password confirmation, the system shall execute an atomic wipe of all products, users, and session settings, and run a SQLite VACUUM operation.
 - Once reset, the system shall immediately terminate the session and route to the First-Run Setup wizard for clean onboarding.
 
+## FR-09C — Currency Selection & Dynamic Value Conversion
+
+The system shall provide a persistent currency preference setting supporting store and warehouse accounting:
+
+- **Supported Options**: The system shall offer two currency choices: `Rupees (₹)` (`INR`, default) and `USD ($)` (`USD`).
+- **Dynamic Conversion**: When the user switches currency between Rupees and US Dollars, the system shall automatically convert all existing inventory product prices in SQLite using the standard exchange rate ($1\text{ USD} = 83\text{ INR}$).
+- **Instant UI Propagation**: Upon currency switch, all dashboard valuations, KPI averages, category capital allocations, replenishment urgencies, and inventory tables shall immediately recalculate and display with the new symbol and converted values.
+- **Persistence**: The chosen currency code shall be saved in the `app_settings` table and restored across application restarts.
+
+## FR-09D — Global Keyboard Shortcuts & Shortcut Customization
+
+The system shall provide global keyboard hotkeys and a user-customizable shortcut configuration interface:
+
+- **Default Hotkeys**:
+  - `Ctrl+N`: Open "Add Product" creation modal from anywhere in the application.
+  - `Ctrl+S`: Instantly focus the quick-search input field (on Dashboard or Inventory).
+  - `Ctrl+L`: Open Inventory view sorted and filtered by "Low Stock" alerts.
+  - `Ctrl+D`: Navigate to Store Analytics & Overview Dashboard.
+  - `Ctrl+I`: Navigate to Inventory Management Table.
+  - `Ctrl+P`: Navigate to Application Settings & Preferences.
+  - `Ctrl+R`: Refresh the active view's data and stock metrics.
+- **Shortcuts Section in Settings**: The Settings interface shall include a dedicated `"Shortcuts"` card allowing the user to view, edit, and update the key combinations for every supported action.
+- **Validation & Collision Prevention**: The system shall validate custom key combinations, require appropriate modifiers (Ctrl, Alt, Shift) or function keys (F1–F12), and prevent conflicting duplicate assignments or overriding reserved clipboard shortcuts (`Ctrl+C`, `Ctrl+V`, `Ctrl+X`, `Ctrl+A`).
+- **Persistence with User Data**: Custom shortcut configurations shall be saved in the `app_settings` table in SQLite alongside all other user data.
+- **Reset to Defaults**: The system shall provide a single-click "Reset to Defaults" button to restore factory hotkeys immediately.
+
 ---
 
 # 11. Database Requirements
@@ -820,7 +848,9 @@ The system shall be considered functionally ready for the base-system review whe
 13. Search Filters combine Category, Supplier, Stock Status, and text queries with clear action (FR-17).
 14. Sorting Options sort all supported columns ascending and descending using strict whitelisting (FR-18).
 15. Database Query Optimization, indexes, and parameterized queries are verified via benchmarks (FR-19, FR-20).
-16. The application operates completely offline with standalone installer and 100% test pass rate across 55 tests.
+16. The application operates completely offline with standalone installer and 100% test pass rate across 70 tests.
+17. Currency selection supports Rupees and USD, dynamically converting product prices at $1\text{ USD} = 83\text{ INR}$ with immediate view synchronization (FR-09C).
+18. Global keyboard shortcuts (`Ctrl+N`, `Ctrl+S`, `Ctrl+L`, `Ctrl+D`, `Ctrl+I`, `Ctrl+P`, `Ctrl+R`) function reliably, and custom shortcut mappings can be configured, validated, persisted in user data, and reset (FR-09D).
 
 ---
 

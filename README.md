@@ -119,12 +119,23 @@ To satisfy the five-feature requirement while remaining strictly faithful to the
 
 - 🔐 **Local User Authentication**: First-run account provisioning and password login using salted PBKDF2 (SHA-256) password hashing with 100,000 iterations.
 - 👤 **User & Business Profile**: Personalized greetings and business identity management with persistent "Keep Me Logged In" configuration.
-- 📦 **Inventory CRUD Operations**: Add, inspect, modify, and delete inventory items with automatic stock valuation and stock status classification.
+- 📦 **Inventory CRUD Operations**: Add, inspect, modify, and delete inventory items with custom threshold alerts (`low_stock_threshold`), automatic valuation, and status classification.
+- 📊 **Shop Owner Inventory & Capital Analysis**: Shop owner dashboard featuring total stock valuation, KPI averages, stock health ratios, category capital allocation bars with deep links, and replenishment urgency alerts.
+- 💱 **Currency Selection & Dynamic Price Conversion**: Dual currency preference (`Rupees (₹)` and `USD ($)`). Dynamically converts all product prices and valuations in SQLite using the standard exchange rate ($1\text{ USD} = 83\text{ INR}$), with immediate view updates.
+- ⌨️ **Global Keyboard Shortcuts & Customization**:
+  - `Ctrl+N`: Add New Item (opens Product Form modal from anywhere in the application).
+  - `Ctrl+S`: Quickly Search Item (instantly focuses quick-search input field).
+  - `Ctrl+L`: Sort / Filter to Low Stock items (navigates to Inventory sorted and filtered by low-stock alerts).
+  - `Ctrl+D`: Go to Dashboard.
+  - `Ctrl+I`: Go to Inventory.
+  - `Ctrl+P`: Go to Settings.
+  - `Ctrl+R`: Refresh Active View.
+- ⚙️ **Configurable "Shortcuts" Section in Settings**: Dedicated Settings card allowing users to customize, update, and validate all shortcut key combinations. Custom shortcuts persist alongside user data in SQLite (`app_settings`), with a one-click "Reset to Defaults" option.
 - 🗄️ **Persistent SQLite Database**: Persistent local database in `inv_mng_sys/database/ims.db` with transactional integrity and automatic rollback on failure.
 - ⚠️ **Danger Zone (Account Deletion & Database Reset)**: Password-protected user account deletion that wipes all products, users, and sessions, cleanly restarting the application into the onboarding wizard.
-- ⌨️ **Keyboard Navigation & Hotkeys**: Full `Tab` / `Shift+Tab` cyclic traversal, `Enter` submission, and `Esc` dismissal across all inputs and dialogs.
+- ⌨️ **Form Keyboard Navigation**: Full `Tab` / `Shift+Tab` cyclic traversal, `Enter` submission, and `Esc` dismissal across all inputs and dialogs.
 - 🖥️ **Single-View Non-Scrolling UI**: Compact, balanced 2-column layouts for Add/Edit product modals, specifications cards, and the First-Run Setup wizard on scaled displays (100%, 125%, 150%).
-- ⚡ **Flicker-Free Transitions**: Non-destructive view caching and off-screen batch rendering eliminating screen flashing and widget redraw stutter.
+- ⚡ **Flicker-Free Transitions**: Non-destructive view caching and pooled table row recycling eliminating screen flashing and widget redraw stutter.
 - 🌓 **Theme Customization**: Real-time switching between System Default (Device Appearance), Dark Mode, and Light Mode with persistent storage.
 - 🚀 **Windows Standalone Installer (`setup.exe`) & Uninstaller**: One-click Inno Setup 6 installer with desktop shortcuts, bundled icons, and data preservation prompts on reinstall and uninstall.
 
@@ -229,23 +240,23 @@ TQM Project/
 │
 └── inv_mng_sys/                       # Source code directory
     ├── app/
-    │   ├── main.py                    # Application coordinator and window manager
+    │   ├── main.py                    # Application coordinator, hotkey dispatching, window manager
     │   ├── database/                  # Connection layer, schema, indexes, queries
     │   ├── authentication/            # Security, PBKDF2 hashing, setup, login
     │   ├── inventory/                 # CRUD logic, filters, sorting, search, benchmark
-    │   ├── dashboard/                 # Real-time statistics, deep links, quick-search
-    │   ├── settings/                  # User profile, theme settings, account reset
+    │   ├── dashboard/                 # Real-time statistics, deep links, quick-search, analytics
+    │   ├── settings/                  # User profile, theme, currency conversion, shortcuts service
     │   └── ui/                        # CustomTkinter theme, components, views, dialogs
     │
     ├── database/                      # Persistent SQLite storage (ims.db)
-    ├── tests/                         # 55 automated unittest test cases (8 suites)
+    ├── tests/                         # 70 automated unittest test cases (9 suites)
     ├── docs/                          # Architecture, database design, review checklists
     ├── app_icon.ico                   # Multi-resolution Windows application icon
     ├── app_icon.png                   # High-resolution PNG application icon
     ├── build_installer.py             # Packaging and Inno Setup automation script
     ├── ims.spec                       # PyInstaller packaging specification
     ├── installer.iss                  # Inno Setup 6 installer configuration
-    ├── setup.exe                      # Standalone Windows installer (22.06 MB)
+    ├── setup.exe                      # Standalone Windows installer (22.09 MB)
     ├── requirements.txt               # Python package dependencies
     ├── run_benchmark.py               # Q13 query performance benchmark script
     └── run.py                         # Application bootstrap entry point
@@ -259,14 +270,14 @@ The project applies software quality practices aligned with TQM methodologies:
 - **Quality Goal Traceability**: Clear mapping from Q13 objective down to database indexes and UI controls.
 - **Defect Prevention**: Parameterized queries, whitelisted sorting, and validation checks preventing data corruption.
 - **Empirical Quality Evidence**: Repeatable benchmarks and `EXPLAIN QUERY PLAN` logs verifying retrieval speedup.
-- **Robustness**: 100% automated test pass rate across 55 test cases.
+- **Robustness**: 100% automated test pass rate across 70 test cases.
 
 ---
 
 ## Project Status
 
 - **Review 1**: Completed (Project conceptualization, SRS, and initial architecture).
-- **Review 2**: Completed & Verified (Authentication, Dashboard, Inventory CRUD, Q13 Search & Retrieval, Standalone Installer Packaging, 55 automated tests).
+- **Review 2**: Completed & Verified (Authentication, Dashboard, Inventory CRUD, Q13 Search & Retrieval, Standalone Installer Packaging, 70 automated tests).
 
 ---
 

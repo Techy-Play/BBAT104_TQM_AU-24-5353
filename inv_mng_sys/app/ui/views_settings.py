@@ -14,6 +14,12 @@ from app.settings.settings import (
     CURRENCY_SYMBOLS,
     SettingsService,
 )
+from app.settings.shortcuts import (
+    DEFAULT_SHORTCUTS,
+    SHORTCUT_METADATA,
+    ShortcutManager,
+    normalize_shortcut,
+)
 from app.ui.components import (
     CardFrame,
     DangerButton,
@@ -32,6 +38,7 @@ from app.ui.theme import (
     COLOR_TEXT_MUTED,
     COLOR_TEXT_PRIMARY,
     FONT_BODY,
+    FONT_BODY_BOLD,
     FONT_HEADING,
     FONT_SECTION,
     FONT_SMALL,
@@ -212,6 +219,7 @@ class SettingsView(ctk.CTkScrollableFrame):
         on_profile_updated: Callable[[UserSession], None],
         on_account_deleted: Optional[Callable[[], None]] = None,
         on_currency_changed: Optional[Callable[[str], None]] = None,
+        on_shortcuts_changed: Optional[Callable[[dict[str, str]], None]] = None,
         db_path: Optional[str] = None,
         **kwargs,
     ):
@@ -220,6 +228,7 @@ class SettingsView(ctk.CTkScrollableFrame):
         self.on_profile_updated = on_profile_updated
         self.on_account_deleted = on_account_deleted
         self.on_currency_changed = on_currency_changed
+        self.on_shortcuts_changed = on_shortcuts_changed
         self.db_path = db_path
 
         self._build_ui()
@@ -427,6 +436,111 @@ class SettingsView(ctk.CTkScrollableFrame):
         self.currency_banner = MessageBanner(card_currency)
         self.currency_banner.pack(anchor="w", padx=20, pady=(0, 16))
 
+        # Shortcuts Section Card
+        card_shortcuts = CardFrame(container)
+        card_shortcuts.pack(fill="x", pady=(0, 15))
+
+        sc_title = ctk.CTkLabel(
+            card_shortcuts,
+            text="Shortcuts",
+            font=FONT_SECTION,
+            text_color=COLOR_TEXT_PRIMARY,
+        )
+        sc_title.pack(anchor="w", padx=20, pady=(18, 6))
+
+        sc_desc = ctk.CTkLabel(
+            card_shortcuts,
+            text="Customize hotkeys for one-touch navigation and inventory actions. Custom shortcut mappings are saved persistently with your local user data.",
+            font=FONT_SMALL,
+            text_color=COLOR_TEXT_MUTED,
+            wraplength=600,
+            justify="left",
+        )
+        sc_desc.pack(anchor="w", padx=20, pady=(0, 14))
+
+        # Table of shortcuts
+        self.shortcut_entries: dict[str, ctk.CTkEntry] = {}
+        active_shortcuts = ShortcutManager.get_shortcuts(custom_path=self.db_path)
+
+        grid_frame = ctk.CTkFrame(card_shortcuts, fg_color="transparent")
+        grid_frame.pack(fill="x", padx=20, pady=(0, 12))
+
+        for action_key, meta in SHORTCUT_METADATA.items():
+            row_frame = ctk.CTkFrame(grid_frame, fg_color="transparent", height=38)
+            row_frame.pack(fill="x", pady=3)
+            row_frame.pack_propagate(False)
+
+            # Left: Icon & Action Name
+            left_lbl_text = f"{meta['icon']}  {meta['name']}"
+            lbl_name = ctk.CTkLabel(
+                row_frame,
+                text=left_lbl_text,
+                font=FONT_BODY_BOLD,
+                text_color=COLOR_TEXT_PRIMARY,
+                width=190,
+                anchor="w",
+            )
+            lbl_name.pack(side="left")
+
+            # Center: Description
+            lbl_desc = ctk.CTkLabel(
+                row_frame,
+                text=meta["description"],
+                font=FONT_SMALL,
+                text_color=COLOR_TEXT_MUTED,
+                anchor="w",
+            )
+            lbl_desc.pack(side="left", fill="x", expand=True, padx=(8, 12))
+
+            # Right: Entry for custom key
+            val = active_shortcuts.get(action_key, meta["default"])
+            entry_sc = ctk.CTkEntry(
+                row_frame,
+                width=110,
+                height=30,
+                font=FONT_BODY_BOLD,
+                corner_radius=6,
+                justify="center",
+            )
+            entry_sc.insert(0, val)
+            entry_sc.pack(side="right", padx=(8, 0))
+            self.shortcut_entries[action_key] = entry_sc
+
+            # Default hint
+            lbl_hint = ctk.CTkLabel(
+                row_frame,
+                text=f"Default: {meta['default']}",
+                font=FONT_SMALL,
+                text_color=COLOR_TEXT_MUTED,
+                width=100,
+                anchor="e",
+            )
+            lbl_hint.pack(side="right")
+
+        self.shortcuts_banner = MessageBanner(card_shortcuts)
+        self.shortcuts_banner.pack(anchor="w", padx=20, pady=(4, 8))
+
+        sc_btn_row = ctk.CTkFrame(card_shortcuts, fg_color="transparent")
+        sc_btn_row.pack(anchor="w", padx=20, pady=(0, 18))
+
+        btn_save_sc = PrimaryButton(
+            sc_btn_row,
+            text="Save Custom Shortcuts",
+            command=self._handle_save_shortcuts,
+            width=180,
+            height=34,
+        )
+        btn_save_sc.pack(side="left", padx=(0, 10))
+
+        btn_reset_sc = SecondaryButton(
+            sc_btn_row,
+            text="Reset to Defaults",
+            command=self._handle_reset_shortcuts,
+            width=140,
+            height=34,
+        )
+        btn_reset_sc.pack(side="left")
+
         # Security Card (Password Change)
         card_sec = CardFrame(container)
         card_sec.pack(fill="x", pady=(0, 15))
@@ -597,17 +711,75 @@ class SettingsView(ctk.CTkScrollableFrame):
         self.theme_banner.show_success(f"{item['symbol']} {item['display_name']} applied and saved successfully.")
 
     def _handle_currency_change(self, selected_display: str) -> None:
-        """Handle currency dropdown selection and persist preference."""
+        """Handle currency dropdown selection, convert product values, and persist preference."""
         try:
+            old_code = SettingsService.get_currency_preference(custom_path=self.db_path)
             code = CURRENCY_DISPLAY_TO_CODE.get(selected_display, "INR")
-            SettingsService.set_currency_preference(code, custom_path=self.db_path)
-            sym = CURRENCY_SYMBOLS.get(code, "₹")
-            self.currency_banner.show_success(f"Currency updated to {selected_display} ({sym}).")
+            new_code = SettingsService.set_currency_preference(
+                code, custom_path=self.db_path, convert_prices=True
+            )
+            sym = CURRENCY_SYMBOLS.get(new_code, "₹")
+            if old_code != new_code:
+                rate_text = "1 USD = ₹83.00"
+                self.currency_banner.show_success(
+                    f"Currency converted to {selected_display} ({sym}) at {rate_text}. All product prices updated."
+                )
+            else:
+                self.currency_banner.show_success(f"Currency preference set to {selected_display} ({sym}).")
             if self.on_currency_changed:
-                self.on_currency_changed(code)
+                self.on_currency_changed(new_code)
         except Exception as exc:
             logger.exception("Failed to update currency.")
             self.currency_banner.show_error(f"Error saving currency: {exc}")
+
+    def _handle_save_shortcuts(self) -> None:
+        """Validate, persist, and apply updated keyboard shortcuts."""
+        self.shortcuts_banner.clear()
+        collected: dict[str, str] = {}
+        for action_key, entry in self.shortcut_entries.items():
+            val = entry.get().strip()
+            if not val:
+                self.shortcuts_banner.show_error(
+                    f"Shortcut for '{SHORTCUT_METADATA[action_key]['name']}' cannot be empty."
+                )
+                return
+            collected[action_key] = val
+
+        try:
+            saved = ShortcutManager.save_shortcuts(collected, custom_path=self.db_path)
+            # Update inputs to normalized representations
+            for action_key, val in saved.items():
+                if action_key in self.shortcut_entries:
+                    self.shortcut_entries[action_key].delete(0, "end")
+                    self.shortcut_entries[action_key].insert(0, val)
+
+            self.shortcuts_banner.show_success("Custom shortcuts saved and applied successfully.")
+            if self.on_shortcuts_changed:
+                self.on_shortcuts_changed(saved)
+        except ValueError as val_err:
+            self.shortcuts_banner.show_error(str(val_err))
+        except Exception as exc:
+            logger.exception("Failed to save custom shortcuts.")
+            self.shortcuts_banner.show_error(f"Error saving shortcuts: {exc}")
+
+    def _handle_reset_shortcuts(self) -> None:
+        """Reset keyboard shortcuts to system defaults."""
+        self.shortcuts_banner.clear()
+        try:
+            defaults = ShortcutManager.reset_shortcuts_to_defaults(custom_path=self.db_path)
+            for action_key, val in defaults.items():
+                if action_key in self.shortcut_entries:
+                    self.shortcut_entries[action_key].delete(0, "end")
+                    self.shortcut_entries[action_key].insert(0, val)
+
+            self.shortcuts_banner.show_success(
+                "Shortcuts reset to factory defaults (Ctrl+N, Ctrl+S, Ctrl+L, etc.)."
+            )
+            if self.on_shortcuts_changed:
+                self.on_shortcuts_changed(defaults)
+        except Exception as exc:
+            logger.exception("Failed to reset shortcuts.")
+            self.shortcuts_banner.show_error(f"Error resetting shortcuts: {exc}")
 
     def _handle_open_delete_modal(self) -> None:
         """Open the password-protected account deletion confirmation dialog."""

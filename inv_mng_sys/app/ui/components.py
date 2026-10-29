@@ -211,6 +211,10 @@ class MessageBanner(ctk.CTkLabel):
         """Clear the banner text."""
         self.configure(text="")
 
+    def get_message(self) -> str:
+        """Return the current message text displayed in the banner."""
+        return str(self.cget("text") or "")
+
 
 class StatCard(CardFrame):
     """Dashboard statistic card displaying icon, numeric metric, title, and optional deep-link action."""

@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 CURRENCY_INR = "INR"
 CURRENCY_USD = "USD"
 DEFAULT_CURRENCY = CURRENCY_INR
+EXCHANGE_RATE_USD_INR = 83.0  # Standard exchange rate: 1 USD = 83.00 INR
 
 CURRENCY_OPTIONS = [
     "Rupees (₹)",
@@ -143,13 +144,50 @@ class SettingsService:
         return DEFAULT_CURRENCY
 
     @staticmethod
-    def set_currency_preference(currency: str, custom_path: Optional[Union[str, Path]] = None) -> str:
-        """Persist currency setting into app_settings table ('INR' or 'USD')."""
+    def set_currency_preference(
+        currency: str,
+        custom_path: Optional[Union[str, Path]] = None,
+        convert_prices: bool = True,
+    ) -> str:
+        """Persist currency setting into app_settings table ('INR' or 'USD').
+
+        When switching between INR and USD, converts all existing product prices
+        proportionately using the standard exchange rate (1 USD = 83 INR).
+        """
+        old_code = SettingsService.get_currency_preference(custom_path=custom_path)
+
         code = str(currency).strip().upper()
         if currency in CURRENCY_DISPLAY_TO_CODE:
             code = CURRENCY_DISPLAY_TO_CODE[currency]
         elif code not in (CURRENCY_INR, CURRENCY_USD):
             code = DEFAULT_CURRENCY
+
+        if convert_prices and old_code != code:
+            try:
+                if old_code == CURRENCY_INR and code == CURRENCY_USD:
+                    # 1 USD = 83 INR -> price_usd = price_inr / 83.0
+                    execute_update_or_delete(
+                        "UPDATE products SET price = ROUND(price / ?, 2);",
+                        (EXCHANGE_RATE_USD_INR,),
+                        custom_path=custom_path,
+                    )
+                    logger.info(
+                        "Converted product prices from INR to USD (divided by %s).",
+                        EXCHANGE_RATE_USD_INR,
+                    )
+                elif old_code == CURRENCY_USD and code == CURRENCY_INR:
+                    # price_inr = price_usd * 83.0
+                    execute_update_or_delete(
+                        "UPDATE products SET price = ROUND(price * ?, 2);",
+                        (EXCHANGE_RATE_USD_INR,),
+                        custom_path=custom_path,
+                    )
+                    logger.info(
+                        "Converted product prices from USD to INR (multiplied by %s).",
+                        EXCHANGE_RATE_USD_INR,
+                    )
+            except Exception as exc:
+                logger.error("Failed to convert product prices during currency change: %s", exc)
 
         try:
             execute_update_or_delete(
