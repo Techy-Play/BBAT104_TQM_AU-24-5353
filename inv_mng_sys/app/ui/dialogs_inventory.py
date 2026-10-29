@@ -11,6 +11,7 @@ from app.inventory.crud import (
     add_product,
     update_product,
 )
+from app.settings.settings import SettingsService
 from app.ui.components import (
     CardFrame,
     LabeledEntry,
@@ -165,9 +166,10 @@ class ProductFormModal(ctk.CTkToplevel):
         )
         self.entry_qty.grid(row=2, column=0, sticky="ew", padx=(0, 8), pady=4)
 
+        sym = SettingsService.get_currency_symbol(custom_path=self.db_path)
         self.entry_price = LabeledEntry(
             form_grid,
-            label_text="Unit Price ($) *",
+            label_text=f"Unit Price ({sym}) *",
             placeholder="e.g. 29.99",
             width=260,
         )
@@ -336,10 +338,11 @@ class ProductFormModal(ctk.CTkToplevel):
 class ProductDetailsModal(ctk.CTkToplevel):
     """Modal dialog displaying comprehensive product details and valuation."""
 
-    def __init__(self, parent, product: Product):
+    def __init__(self, parent, product: Product, db_path: Optional[str] = None):
         super().__init__(parent)
         self.withdraw()  # Prevent unstyled flash during layout construction
         self.product = product
+        self.db_path = db_path
         self.title(f"Product Details — {product.product_id}")
         width, height = 580, 420
         self.minsize(520, 380)
@@ -391,16 +394,17 @@ class ProductDetailsModal(ctk.CTkToplevel):
         grid_frame.pack(fill="both", expand=True, padx=20, pady=(0, 8))
         grid_frame.grid_columnconfigure((0, 1), weight=1, uniform="col_detail")
 
+        sym = SettingsService.get_currency_symbol(custom_path=self.db_path)
         left_details = [
             ("Category", product.category),
             ("Supplier", product.supplier),
             ("In-Stock Quantity", f"{product.quantity:,} units"),
             ("Low Stock Threshold", f"{product.low_stock_threshold:,} units"),
-            ("Unit Price", f"${product.price:.2f}"),
+            ("Unit Price", f"{sym}{product.price:.2f}"),
         ]
 
         right_details = [
-            ("Total Valuation", f"${product.total_value:,.2f}"),
+            ("Total Valuation", f"{sym}{product.total_value:,.2f}"),
             ("Stock Status", product.stock_status),
             ("Created Date", product.created_at[:16] if product.created_at else "N/A"),
             ("Last Updated", product.updated_at[:16] if product.updated_at else "N/A"),

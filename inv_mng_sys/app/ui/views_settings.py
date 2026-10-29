@@ -7,7 +7,13 @@ from typing import Callable, Optional
 import customtkinter as ctk
 
 from app.authentication.security import UserSession
-from app.settings.settings import SettingsService
+from app.settings.settings import (
+    CURRENCY_CODE_TO_DISPLAY,
+    CURRENCY_DISPLAY_TO_CODE,
+    CURRENCY_OPTIONS,
+    CURRENCY_SYMBOLS,
+    SettingsService,
+)
 from app.ui.components import (
     CardFrame,
     DangerButton,
@@ -205,6 +211,7 @@ class SettingsView(ctk.CTkScrollableFrame):
         user_session: UserSession,
         on_profile_updated: Callable[[UserSession], None],
         on_account_deleted: Optional[Callable[[], None]] = None,
+        on_currency_changed: Optional[Callable[[str], None]] = None,
         db_path: Optional[str] = None,
         **kwargs,
     ):
@@ -212,6 +219,7 @@ class SettingsView(ctk.CTkScrollableFrame):
         self.user_session = user_session
         self.on_profile_updated = on_profile_updated
         self.on_account_deleted = on_account_deleted
+        self.on_currency_changed = on_currency_changed
         self.db_path = db_path
 
         self._build_ui()
@@ -360,6 +368,64 @@ class SettingsView(ctk.CTkScrollableFrame):
 
         self.theme_banner = MessageBanner(card_theme)
         self.theme_banner.pack(anchor="w", padx=20, pady=(0, 16))
+
+        # Currency & Regional Settings Card
+        card_currency = CardFrame(container)
+        card_currency.pack(fill="x", pady=(0, 15))
+
+        curr_title = ctk.CTkLabel(
+            card_currency,
+            text="Currency Display & Symbol",
+            font=FONT_SECTION,
+            text_color=COLOR_TEXT_PRIMARY,
+        )
+        curr_title.pack(anchor="w", padx=20, pady=(18, 6))
+
+        curr_desc = ctk.CTkLabel(
+            card_currency,
+            text="Select the default currency symbol used across the dashboard, inventory overview, and product price tags.",
+            font=FONT_SMALL,
+            text_color=COLOR_TEXT_MUTED,
+            wraplength=550,
+            justify="left",
+        )
+        curr_desc.pack(anchor="w", padx=20, pady=(0, 12))
+
+        c_box = ctk.CTkFrame(card_currency, fg_color="transparent")
+        c_box.pack(fill="x", padx=20, pady=(0, 10))
+
+        ctk.CTkLabel(
+            c_box,
+            text="Active Currency:",
+            font=FONT_BODY,
+            text_color=COLOR_TEXT_PRIMARY,
+            width=130,
+            anchor="w",
+        ).pack(side="left")
+
+        current_curr_code = SettingsService.get_currency_preference(custom_path=self.db_path)
+        current_display = CURRENCY_CODE_TO_DISPLAY.get(current_curr_code, "Rupees (₹)")
+
+        self.opt_currency = ctk.CTkOptionMenu(
+            c_box,
+            values=["Rupees (₹)", "USD ($)"],
+            command=self._handle_currency_change,
+            width=230,
+            height=34,
+            corner_radius=6,
+            fg_color=COLOR_SECONDARY,
+            button_color=COLOR_SECONDARY_HOVER,
+            button_hover_color=COLOR_PRIMARY,
+            text_color=COLOR_TEXT_PRIMARY,
+            dropdown_fg_color=COLOR_CARD_BG,
+            dropdown_text_color=COLOR_TEXT_PRIMARY,
+            dropdown_hover_color=COLOR_PRIMARY,
+        )
+        self.opt_currency.set(current_display)
+        self.opt_currency.pack(side="left")
+
+        self.currency_banner = MessageBanner(card_currency)
+        self.currency_banner.pack(anchor="w", padx=20, pady=(0, 16))
 
         # Security Card (Password Change)
         card_sec = CardFrame(container)
@@ -529,6 +595,19 @@ class SettingsView(ctk.CTkScrollableFrame):
         ctk.set_appearance_mode(mode)
         item = THEME_MODES.get(mode, THEME_MODES["system"])
         self.theme_banner.show_success(f"{item['symbol']} {item['display_name']} applied and saved successfully.")
+
+    def _handle_currency_change(self, selected_display: str) -> None:
+        """Handle currency dropdown selection and persist preference."""
+        try:
+            code = CURRENCY_DISPLAY_TO_CODE.get(selected_display, "INR")
+            SettingsService.set_currency_preference(code, custom_path=self.db_path)
+            sym = CURRENCY_SYMBOLS.get(code, "₹")
+            self.currency_banner.show_success(f"Currency updated to {selected_display} ({sym}).")
+            if self.on_currency_changed:
+                self.on_currency_changed(code)
+        except Exception as exc:
+            logger.exception("Failed to update currency.")
+            self.currency_banner.show_error(f"Error saving currency: {exc}")
 
     def _handle_open_delete_modal(self) -> None:
         """Open the password-protected account deletion confirmation dialog."""

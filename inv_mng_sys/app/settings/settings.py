@@ -23,6 +23,30 @@ from app.database.queries import execute_update_or_delete, fetch_one
 
 logger = logging.getLogger(__name__)
 
+CURRENCY_INR = "INR"
+CURRENCY_USD = "USD"
+DEFAULT_CURRENCY = CURRENCY_INR
+
+CURRENCY_OPTIONS = [
+    "Rupees (₹)",
+    "USD ($)",
+]
+
+CURRENCY_DISPLAY_TO_CODE = {
+    "Rupees (₹)": CURRENCY_INR,
+    "USD ($)": CURRENCY_USD,
+}
+
+CURRENCY_CODE_TO_DISPLAY = {
+    CURRENCY_INR: "Rupees (₹)",
+    CURRENCY_USD: "USD ($)",
+}
+
+CURRENCY_SYMBOLS = {
+    CURRENCY_INR: "₹",
+    CURRENCY_USD: "$",
+}
+
 
 class SettingsService:
     """Service handling profile, security, and persistent theme configuration."""
@@ -95,6 +119,64 @@ class SettingsService:
         except Exception as exc:
             logger.error("Failed to persist theme preference: %s", exc)
         return val
+
+    @staticmethod
+    def get_currency_preference(custom_path: Optional[Union[str, Path]] = None) -> str:
+        """Fetch persistent currency setting from app_settings ('INR', 'USD').
+        Defaults to 'INR' (Rupees) if not explicitly set.
+        """
+        try:
+            row = fetch_one(
+                "SELECT value FROM app_settings WHERE key = 'currency';",
+                custom_path=custom_path,
+            )
+            if row and row["value"]:
+                val = str(row["value"]).strip().upper()
+                if val in (CURRENCY_INR, CURRENCY_USD):
+                    return val
+                if "RUPEE" in val or "INR" in val or "₹" in val:
+                    return CURRENCY_INR
+                if "USD" in val or "$" in val:
+                    return CURRENCY_USD
+        except Exception as exc:
+            logger.warning("Could not read currency preference from database: %s", exc)
+        return DEFAULT_CURRENCY
+
+    @staticmethod
+    def set_currency_preference(currency: str, custom_path: Optional[Union[str, Path]] = None) -> str:
+        """Persist currency setting into app_settings table ('INR' or 'USD')."""
+        code = str(currency).strip().upper()
+        if currency in CURRENCY_DISPLAY_TO_CODE:
+            code = CURRENCY_DISPLAY_TO_CODE[currency]
+        elif code not in (CURRENCY_INR, CURRENCY_USD):
+            code = DEFAULT_CURRENCY
+
+        try:
+            execute_update_or_delete(
+                """
+                INSERT INTO app_settings (key, value, updated_at)
+                VALUES ('currency', ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP;
+                """,
+                (code,),
+                custom_path=custom_path,
+            )
+            logger.info("Persisted currency preference '%s' in database.", code)
+        except Exception as exc:
+            logger.error("Failed to persist currency preference: %s", exc)
+        return code
+
+    @staticmethod
+    def get_currency_symbol(custom_path: Optional[Union[str, Path]] = None) -> str:
+        """Return the active currency symbol ('₹' or '$'). Defaults to '₹'."""
+        code = SettingsService.get_currency_preference(custom_path=custom_path)
+        return CURRENCY_SYMBOLS.get(code, "₹")
+
+    @staticmethod
+    def format_currency(amount: float, custom_path: Optional[Union[str, Path]] = None) -> str:
+        """Format a numeric price/amount with the active currency symbol."""
+        symbol = SettingsService.get_currency_symbol(custom_path=custom_path)
+        return f"{symbol}{amount:,.2f}"
 
     @staticmethod
     def delete_user_and_reset_database(

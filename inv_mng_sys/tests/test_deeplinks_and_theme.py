@@ -36,6 +36,7 @@ from app.ui.theme import (
     parse_theme_mode,
 )
 from app.ui.views_inventory import InventoryView
+from app.ui.views_settings import SettingsView
 
 
 class TestDeepLinksAndThemePersistence(unittest.TestCase):
@@ -258,6 +259,78 @@ class TestDeepLinksAndThemePersistence(unittest.TestCase):
             self.assertTrue(geo.startswith("480x600"), f"Expected 480x600 but got {geo}")
         finally:
             app.destroy()
+
+    def test_07_currency_preference_defaults_to_rupees(self):
+        """Confirm currency preference defaults to Rupees ('INR' / '₹') when unconfigured."""
+        currency = SettingsService.get_currency_preference(custom_path=self.db_path)
+        self.assertEqual(currency, "INR")
+
+        symbol = SettingsService.get_currency_symbol(custom_path=self.db_path)
+        self.assertEqual(symbol, "₹")
+
+        formatted = SettingsService.format_currency(1234.5, custom_path=self.db_path)
+        self.assertEqual(formatted, "₹1,234.50")
+
+    def test_08_currency_preference_persistence_and_usd(self):
+        """Confirm currency selection persists across changes (Rupees vs USD) and formats accurately."""
+        # 1. Switch to USD
+        SettingsService.set_currency_preference("USD", custom_path=self.db_path)
+        self.assertEqual(SettingsService.get_currency_preference(custom_path=self.db_path), "USD")
+        self.assertEqual(SettingsService.get_currency_symbol(custom_path=self.db_path), "$")
+        self.assertEqual(SettingsService.format_currency(59.99, custom_path=self.db_path), "$59.99")
+
+        # 2. Switch using display string 'USD ($)'
+        SettingsService.set_currency_preference("USD ($)", custom_path=self.db_path)
+        self.assertEqual(SettingsService.get_currency_preference(custom_path=self.db_path), "USD")
+
+        # 3. Switch back to Rupees using display string 'Rupees (₹)'
+        SettingsService.set_currency_preference("Rupees (₹)", custom_path=self.db_path)
+        self.assertEqual(SettingsService.get_currency_preference(custom_path=self.db_path), "INR")
+        self.assertEqual(SettingsService.get_currency_symbol(custom_path=self.db_path), "₹")
+        self.assertEqual(SettingsService.format_currency(59.99, custom_path=self.db_path), "₹59.99")
+
+        # 4. Graceful fallback on unknown value
+        SettingsService.set_currency_preference("INVALID_CODE", custom_path=self.db_path)
+        self.assertEqual(SettingsService.get_currency_preference(custom_path=self.db_path), "INR")
+
+    def test_09_settings_view_currency_selector(self):
+        """Confirm SettingsView provides exactly 2 currency options, defaults to Rupees, and updates dynamically."""
+        import customtkinter as ctk
+        root = ctk.CTk()
+        root.withdraw()
+
+        changed_currencies: list[str] = []
+
+        try:
+            view = SettingsView(
+                master=root,
+                user_session=self.mock_session,
+                on_profile_updated=lambda _s: None,
+                on_account_deleted=lambda: None,
+                on_currency_changed=lambda c: changed_currencies.append(c),
+                db_path=str(self.db_path),
+            )
+            root.update()
+
+            # Verify only 2 options exist
+            self.assertEqual(view.opt_currency._values, ["Rupees (₹)", "USD ($)"])
+
+            # Verify initial selection is Rupees
+            self.assertEqual(view.opt_currency.get(), "Rupees (₹)")
+
+            # Select USD ($)
+            view._handle_currency_change("USD ($)")
+            self.assertEqual(SettingsService.get_currency_preference(custom_path=self.db_path), "USD")
+            self.assertEqual(len(changed_currencies), 1)
+            self.assertEqual(changed_currencies[-1], "USD")
+
+            # Select Rupees (₹)
+            view._handle_currency_change("Rupees (₹)")
+            self.assertEqual(SettingsService.get_currency_preference(custom_path=self.db_path), "INR")
+            self.assertEqual(len(changed_currencies), 2)
+            self.assertEqual(changed_currencies[-1], "INR")
+        finally:
+            root.destroy()
 
 
 if __name__ == "__main__":

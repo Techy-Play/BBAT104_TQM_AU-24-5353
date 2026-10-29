@@ -25,6 +25,7 @@ from app.inventory.crud import (
 )
 from app.inventory.filters import FilterCriteria
 from app.inventory.search import search_products_quick
+from app.settings.settings import SettingsService
 from app.ui.components import (
     CardFrame,
     PrimaryButton,
@@ -91,11 +92,11 @@ class CategoryAnalysisRow(ctk.CTkFrame):
         if self.category_name and self._on_filter:
             self._on_filter(self.category_name)
 
-    def update_data(self, cat_data: dict) -> None:
+    def update_data(self, cat_data: dict, currency_sym: str = "₹") -> None:
         self.category_name = cat_data["category"]
         self.name_lbl.configure(text=cat_data["category"])
         self.units_lbl.configure(text=f"{cat_data['units']} units")
-        self.val_lbl.configure(text=f"${cat_data['value']:,.2f}")
+        self.val_lbl.configure(text=f"{currency_sym}{cat_data['value']:,.2f}")
         self.pct_lbl.configure(text=f"{cat_data['percent_share']}%")
         self.progress.set(min(1.0, max(0.0, cat_data["percent_share"] / 100.0)))
 
@@ -231,7 +232,7 @@ class DashboardTableRow(ctk.CTkFrame):
         if self.product:
             self._on_open(self.product)
 
-    def update_product(self, prod: Product, is_alt: bool) -> None:
+    def update_product(self, prod: Product, is_alt: bool, currency_sym: str = "₹") -> None:
         """Update row contents in-place without widget reconstruction."""
         self.product = prod
         bg_col = COLOR_ROW_ALT if is_alt else "transparent"
@@ -241,7 +242,7 @@ class DashboardTableRow(ctk.CTkFrame):
         self.cat_lbl.configure(text=prod.category)
         self.sup_lbl.configure(text=prod.supplier)
         self.qty_lbl.configure(text=str(prod.quantity))
-        self.price_lbl.configure(text=f"${prod.price:.2f}")
+        self.price_lbl.configure(text=f"{currency_sym}{prod.price:.2f}")
         self.badge.update_status(prod.stock_status)
 
 
@@ -375,10 +376,11 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         )
         self.card_qty.grid(row=0, column=1, sticky="ew", padx=4)
 
+        sym = SettingsService.get_currency_symbol(custom_path=self.db_path)
         self.card_val = StatCard(
             stats_grid,
             title="Total Stock Value",
-            value="$0.00",
+            value=f"{sym}0.00",
             icon="💰",
             accent_color=COLOR_SUCCESS,
             link_text="Sort by Price ↗",
@@ -649,9 +651,10 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         """Fetch real statistics and refresh the overview list and analysis cards."""
         try:
             stats = get_inventory_statistics(custom_path=self.db_path)
+            sym = SettingsService.get_currency_symbol(custom_path=self.db_path)
             self.card_total.update_value(f"{stats['total_products']:,}")
             self.card_qty.update_value(f"{stats['total_quantity']:,}")
-            self.card_val.update_value(f"${stats['total_value']:,.2f}")
+            self.card_val.update_value(f"{sym}{stats['total_value']:,.2f}")
             self.card_low.update_value(f"{stats['low_stock_count']:,}")
             self.card_out.update_value(f"{stats['out_of_stock_count']:,}")
 
@@ -667,9 +670,10 @@ class DashboardFrame(ctk.CTkScrollableFrame):
     def _update_analysis_section(self, analysis: dict) -> None:
         """Update shop owner analysis cards with fresh statistics without UI flicker."""
         try:
+            sym = SettingsService.get_currency_symbol(custom_path=self.db_path)
             # Header KPIs
             self.analysis_kpi_lbl.configure(
-                text=f"Avg SKU: ${analysis['avg_sku_value']:,.2f}  •  Avg Unit: ${analysis['avg_unit_price']:,.2f}"
+                text=f"Avg SKU: {sym}{analysis['avg_sku_value']:,.2f}  •  Avg Unit: {sym}{analysis['avg_unit_price']:,.2f}"
             )
 
             # Stock Health
@@ -696,7 +700,7 @@ class DashboardFrame(ctk.CTkScrollableFrame):
                 for idx, cat_data in enumerate(categories):
                     if idx < len(self._category_row_pool):
                         row = self._category_row_pool[idx]
-                        row.update_data(cat_data)
+                        row.update_data(cat_data, currency_sym=sym)
                         if row.winfo_manager() != "pack":
                             row.pack(fill="x", pady=2)
                     else:
@@ -704,7 +708,7 @@ class DashboardFrame(ctk.CTkScrollableFrame):
                             master=self.category_container,
                             on_filter=lambda cat: self._navigate_to_inventory(FilterCriteria(category=cat)),
                         )
-                        row.update_data(cat_data)
+                        row.update_data(cat_data, currency_sym=sym)
                         row.pack(fill="x", pady=2)
                         self._category_row_pool.append(row)
 
@@ -749,7 +753,7 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         """Open ProductDetailsModal for a given product ID."""
         prod = get_product_by_id(item_id, custom_path=self.db_path)
         if prod:
-            ProductDetailsModal(parent=self.winfo_toplevel(), product=prod)
+            ProductDetailsModal(parent=self.winfo_toplevel(), product=prod, db_path=self.db_path)
 
     def _on_quick_search_key_release(self, event=None) -> None:
         """Debounced live search on key release (200ms) to avoid keystroke flooding."""
@@ -812,19 +816,20 @@ class DashboardFrame(ctk.CTkScrollableFrame):
                 self._show_empty_state(query)
             else:
                 self._hide_empty_state()
+                sym = SettingsService.get_currency_symbol(custom_path=self.db_path)
                 for idx, prod in enumerate(prods):
                     if idx < len(self._row_pool):
                         row = self._row_pool[idx]
-                        row.update_product(prod, is_alt=(idx % 2 == 1))
+                        row.update_product(prod, is_alt=(idx % 2 == 1), currency_sym=sym)
                         if row.winfo_manager() != "pack":
                             row.pack(fill="x", pady=2, padx=4)
                     else:
                         row = DashboardTableRow(
                             master=self.table_body,
-                            on_view=lambda p: ProductDetailsModal(parent=self.winfo_toplevel(), product=p),
+                            on_view=lambda p: ProductDetailsModal(parent=self.winfo_toplevel(), product=p, db_path=self.db_path),
                             on_open=lambda p: self._navigate_to_inventory(FilterCriteria(search_query=p.product_id)),
                         )
-                        row.update_product(prod, is_alt=(idx % 2 == 1))
+                        row.update_product(prod, is_alt=(idx % 2 == 1), currency_sym=sym)
                         row.pack(fill="x", pady=2, padx=4)
                         self._row_pool.append(row)
 

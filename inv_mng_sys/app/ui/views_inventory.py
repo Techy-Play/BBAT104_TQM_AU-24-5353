@@ -16,6 +16,7 @@ from app.inventory.filters import (
     get_distinct_categories,
     get_distinct_suppliers,
 )
+from app.settings.settings import SettingsService
 from app.ui.components import (
     CardFrame,
     ConfirmationModal,
@@ -141,7 +142,7 @@ class InventoryTableRow(ctk.CTkFrame):
         if self.product:
             self._on_delete(self.product)
 
-    def update_product(self, prod: Product, is_alt: bool) -> None:
+    def update_product(self, prod: Product, is_alt: bool, currency_sym: str = "₹") -> None:
         """Update row contents in-place without widget reconstruction."""
         self.product = prod
         bg_col = COLOR_ROW_ALT if is_alt else "transparent"
@@ -151,7 +152,7 @@ class InventoryTableRow(ctk.CTkFrame):
         self.cat_lbl.configure(text=prod.category)
         self.sup_lbl.configure(text=prod.supplier)
         self.qty_lbl.configure(text=str(prod.quantity))
-        self.price_lbl.configure(text=f"${prod.price:.2f}")
+        self.price_lbl.configure(text=f"{currency_sym}{prod.price:.2f}")
         self.badge.update_status(prod.stock_status)
 
 
@@ -600,10 +601,11 @@ class InventoryView(ctk.CTkFrame):
                 self._show_empty_state()
             else:
                 self._hide_empty_state()
+                sym = SettingsService.get_currency_symbol(custom_path=self.db_path)
                 for idx, prod in enumerate(self.products):
                     if idx < len(self._row_pool):
                         row = self._row_pool[idx]
-                        row.update_product(prod, is_alt=(idx % 2 == 1))
+                        row.update_product(prod, is_alt=(idx % 2 == 1), currency_sym=sym)
                         if row.winfo_manager() != "pack":
                             row.pack(fill="x", pady=2, padx=4)
                     else:
@@ -613,7 +615,7 @@ class InventoryView(ctk.CTkFrame):
                             on_edit=self._edit_product,
                             on_delete=self._confirm_delete,
                         )
-                        row.update_product(prod, is_alt=(idx % 2 == 1))
+                        row.update_product(prod, is_alt=(idx % 2 == 1), currency_sym=sym)
                         row.pack(fill="x", pady=2, padx=4)
                         self._row_pool.append(row)
 
@@ -676,7 +678,7 @@ class InventoryView(ctk.CTkFrame):
         )
 
     def _view_details(self, product: Product) -> None:
-        ProductDetailsModal(parent=self.winfo_toplevel(), product=product)
+        ProductDetailsModal(parent=self.winfo_toplevel(), product=product, db_path=self.db_path)
 
     def _confirm_delete(self, product: Product) -> None:
         msg = f"Are you sure you want to delete product '{product.name}' (SKU: {product.product_id})?\n\nThis will permanently remove the record from SQLite."

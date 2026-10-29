@@ -360,11 +360,20 @@ class IMSApplication(ctk.CTk):
                 user_session=self.current_session,
                 on_profile_updated=self._on_profile_updated,
                 on_account_deleted=self.handle_account_deleted,
+                on_currency_changed=self._on_currency_changed,
                 db_path=self.db_path,
             )
 
         self.current_view = self.views["settings"]
         self.current_view.pack(fill="both", expand=True)
+
+    def _on_currency_changed(self, _new_currency: str) -> None:
+        """Refresh dashboard and inventory views when currency preference changes."""
+        self._data_dirty = True
+        if "dash" in self.views and self.views["dash"].winfo_exists():
+            self.views["dash"].refresh_dashboard()
+        if "inv" in self.views and self.views["inv"].winfo_exists():
+            self.views["inv"].refresh_products()
 
     def handle_account_deleted(self) -> None:
         """Handle complete account and database reset by clearing session and routing to setup."""
