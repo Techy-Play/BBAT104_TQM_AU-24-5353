@@ -49,6 +49,112 @@ from app.ui.theme import (
 logger = logging.getLogger(__name__)
 
 
+class InventoryTableRow(ctk.CTkFrame):
+    """Pooled table row widget reused across refreshes to eliminate widget churn and redraw flicker."""
+
+    def __init__(
+        self,
+        master,
+        on_view: Callable[[Product], None],
+        on_edit: Callable[[Product], None],
+        on_delete: Callable[[Product], None],
+    ):
+        super().__init__(master, corner_radius=6, height=44)
+        self.pack_propagate(False)
+        self._on_view = on_view
+        self._on_edit = on_edit
+        self._on_delete = on_delete
+        self.product: Optional[Product] = None
+
+        # SKU
+        self.sku_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY, width=110, anchor="w")
+        self.sku_lbl.pack(side="left", padx=4)
+
+        # Name
+        self.name_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY, width=200, anchor="w")
+        self.name_lbl.pack(side="left", padx=4)
+
+        # Category
+        self.cat_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY, width=120, anchor="w", text_color=COLOR_TEXT_MUTED)
+        self.cat_lbl.pack(side="left", padx=4)
+
+        # Supplier
+        self.sup_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY, width=130, anchor="w", text_color=COLOR_TEXT_MUTED)
+        self.sup_lbl.pack(side="left", padx=4)
+
+        # Quantity
+        self.qty_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY, width=80, anchor="w")
+        self.qty_lbl.pack(side="left", padx=4)
+
+        # Price
+        self.price_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY, width=80, anchor="w")
+        self.price_lbl.pack(side="left", padx=4)
+
+        # Status badge container
+        status_box = ctk.CTkFrame(self, fg_color="transparent", width=110)
+        status_box.pack(side="left", padx=4)
+        status_box.pack_propagate(False)
+        self.badge = StatusBadge(status_box, status="In Stock")
+        self.badge.pack(side="left", pady=8)
+
+        # Action buttons container
+        act_box = ctk.CTkFrame(self, fg_color="transparent", width=160)
+        act_box.pack(side="left", padx=4)
+        act_box.pack_propagate(False)
+
+        self.btn_view = SecondaryButton(
+            act_box,
+            text="👁️",
+            width=34,
+            height=30,
+            command=self._handle_view,
+        )
+        self.btn_view.pack(side="left", padx=2)
+
+        self.btn_edit = PrimaryButton(
+            act_box,
+            text="✏️",
+            width=34,
+            height=30,
+            command=self._handle_edit,
+        )
+        self.btn_edit.pack(side="left", padx=2)
+
+        self.btn_del = DangerButton(
+            act_box,
+            text="🗑️",
+            width=34,
+            height=30,
+            command=self._handle_delete,
+        )
+        self.btn_del.pack(side="left", padx=2)
+
+    def _handle_view(self) -> None:
+        if self.product:
+            self._on_view(self.product)
+
+    def _handle_edit(self) -> None:
+        if self.product:
+            self._on_edit(self.product)
+
+    def _handle_delete(self) -> None:
+        if self.product:
+            self._on_delete(self.product)
+
+    def update_product(self, prod: Product, is_alt: bool) -> None:
+        """Update row contents in-place without widget reconstruction."""
+        self.product = prod
+        bg_col = COLOR_ROW_ALT if is_alt else "transparent"
+        self.configure(fg_color=bg_col)
+        self.sku_lbl.configure(text=prod.product_id)
+        self.name_lbl.configure(text=prod.name)
+        self.cat_lbl.configure(text=prod.category)
+        self.sup_lbl.configure(text=prod.supplier)
+        self.qty_lbl.configure(text=str(prod.quantity))
+        self.price_lbl.configure(text=f"${prod.price:.2f}")
+        self.badge.update_status(prod.stock_status)
+
+
 class InventoryView(ctk.CTkFrame):
     """Full inventory management screen with table, Q13 search filters, sorting, and CRUD."""
 
@@ -64,6 +170,11 @@ class InventoryView(ctk.CTkFrame):
         self.on_data_changed = on_data_changed
         self.db_path = db_path
         self.products: List[Product] = []
+        self._row_pool: list[InventoryTableRow] = []
+        self._empty_box: Optional[ctk.CTkFrame] = None
+        self._cached_categories: Optional[list[str]] = None
+        self._cached_suppliers: Optional[list[str]] = None
+        self._search_after_id: Optional[str] = None
 
         self._build_ui()
         if initial_criteria is not None:
@@ -125,7 +236,8 @@ class InventoryView(ctk.CTkFrame):
             font=FONT_BODY,
         )
         self.search_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
-        self.search_entry.bind("<Return>", lambda e: self.apply_filters())
+        self.search_entry.bind("<KeyRelease>", self._on_search_key_release)
+        self.search_entry.bind("<Return>", lambda e: self._on_search_enter())
 
         btn_search = PrimaryButton(search_row, text="Search", command=self.apply_filters, width=100)
         btn_search.pack(side="left", padx=(0, 8))
@@ -308,27 +420,54 @@ class InventoryView(ctk.CTkFrame):
             )
             lbl.pack(side="left", padx=4)
 
-    def _populate_filter_dropdowns(self) -> None:
-        """Dynamically populate category and supplier dropdowns from SQLite records."""
-        try:
-            current_cat = self.opt_category.get()
-            current_sup = self.opt_supplier.get()
+    def _on_search_key_release(self, event=None) -> None:
+        """Debounced live search on key release (200ms) to prevent keystroke flooding."""
+        if event and event.keysym in (
+            "Shift_L", "Shift_R", "Control_L", "Control_R",
+            "Alt_L", "Alt_R", "Caps_Lock", "Tab", "Escape",
+            "Return", "Up", "Down", "Left", "Right",
+        ):
+            return
+        if self._search_after_id:
+            try:
+                self.after_cancel(self._search_after_id)
+            except Exception:
+                pass
+        self._search_after_id = self.after(200, self.apply_filters)
 
+    def _on_search_enter(self) -> None:
+        """Immediate search execution when Enter is pressed."""
+        if self._search_after_id:
+            try:
+                self.after_cancel(self._search_after_id)
+            except Exception:
+                pass
+            self._search_after_id = None
+        self.apply_filters()
+
+    def _populate_filter_dropdowns(self) -> None:
+        """Dynamically populate category and supplier dropdowns only when values changed."""
+        try:
             cats = ["All Categories"] + get_distinct_categories(custom_path=self.db_path)
             sups = ["All Suppliers"] + get_distinct_suppliers(custom_path=self.db_path)
 
-            self.opt_category.configure(values=cats)
-            self.opt_supplier.configure(values=sups)
+            if self._cached_categories != cats:
+                self._cached_categories = cats
+                current_cat = self.opt_category.get()
+                self.opt_category.configure(values=cats)
+                if current_cat in cats:
+                    self.opt_category.set(current_cat)
+                else:
+                    self.opt_category.set("All Categories")
 
-            if current_cat in cats:
-                self.opt_category.set(current_cat)
-            else:
-                self.opt_category.set("All Categories")
-
-            if current_sup in sups:
-                self.opt_supplier.set(current_sup)
-            else:
-                self.opt_supplier.set("All Suppliers")
+            if self._cached_suppliers != sups:
+                self._cached_suppliers = sups
+                current_sup = self.opt_supplier.get()
+                self.opt_supplier.configure(values=sups)
+                if current_sup in sups:
+                    self.opt_supplier.set(current_sup)
+                else:
+                    self.opt_supplier.set("All Suppliers")
         except Exception as exc:
             logger.exception("Error populating filter dropdowns: %s", exc)
 
@@ -354,6 +493,13 @@ class InventoryView(ctk.CTkFrame):
 
     def clear_all_filters(self) -> None:
         """Reset all search filters and sorting back to default view."""
+        if self._search_after_id:
+            try:
+                self.after_cancel(self._search_after_id)
+            except Exception:
+                pass
+            self._search_after_id = None
+
         self.search_entry.delete(0, "end")
         self.opt_category.set("All Categories")
         self.opt_supplier.set("All Suppliers")
@@ -421,7 +567,7 @@ class InventoryView(ctk.CTkFrame):
         self.refresh_products(criteria=criteria)
 
     def refresh_products(self, criteria: Optional[FilterCriteria] = None) -> None:
-        """Execute filtered query from SQLite and re-render table rows."""
+        """Execute filtered query from SQLite and re-render rows with widget recycling (zero flicker)."""
         if criteria is None:
             # Reconstruct from UI values
             self.apply_filters()
@@ -429,12 +575,7 @@ class InventoryView(ctk.CTkFrame):
 
         self._populate_filter_dropdowns()
 
-        # Detach table frame during update to batch rendering and eliminate redraw flicker
-        self.table_body.pack_forget()
         try:
-            for child in self.table_body.winfo_children():
-                child.destroy()
-
             self.products = filter_products(criteria, custom_path=self.db_path)
             total_count = len(self.products)
 
@@ -454,111 +595,69 @@ class InventoryView(ctk.CTkFrame):
             self.count_lbl.configure(text=f"Showing {total_count} product(s) ({filter_desc})")
 
             if not self.products:
-                self._render_empty_state()
+                for row in self._row_pool:
+                    row.pack_forget()
+                self._show_empty_state()
             else:
+                self._hide_empty_state()
                 for idx, prod in enumerate(self.products):
-                    self._render_row(prod, is_alt=(idx % 2 == 1))
+                    if idx < len(self._row_pool):
+                        row = self._row_pool[idx]
+                        row.update_product(prod, is_alt=(idx % 2 == 1))
+                        if row.winfo_manager() != "pack":
+                            row.pack(fill="x", pady=2, padx=4)
+                    else:
+                        row = InventoryTableRow(
+                            master=self.table_body,
+                            on_view=self._view_details,
+                            on_edit=self._edit_product,
+                            on_delete=self._confirm_delete,
+                        )
+                        row.update_product(prod, is_alt=(idx % 2 == 1))
+                        row.pack(fill="x", pady=2, padx=4)
+                        self._row_pool.append(row)
+
+                # Unmap any excess rows from longer prior queries
+                for idx in range(len(self.products), len(self._row_pool)):
+                    self._row_pool[idx].pack_forget()
 
         except Exception as exc:
             logger.exception("Error filtering products.")
             self.count_lbl.configure(text="Error querying database.")
-        finally:
-            self.table_body.pack(fill="both", expand=True, padx=4, pady=4)
 
-    def _render_empty_state(self) -> None:
-        empty_box = ctk.CTkFrame(self.table_body, fg_color="transparent")
-        empty_box.pack(expand=True, fill="both", pady=40)
+    def _show_empty_state(self) -> None:
+        """Display helpful empty state container."""
+        if self._empty_box is None:
+            self._empty_box = ctk.CTkFrame(self.table_body, fg_color="transparent")
+            icon = ctk.CTkLabel(self._empty_box, text="🔍", font=(FONT_BODY[0], 42))
+            icon.pack(pady=(10, 4))
 
-        icon = ctk.CTkLabel(empty_box, text="🔍", font=(FONT_BODY[0], 42))
-        icon.pack(pady=(10, 4))
+            msg = ctk.CTkLabel(
+                self._empty_box,
+                text="No products match the selected search or filter criteria.",
+                font=FONT_SECTION,
+                text_color=COLOR_TEXT_PRIMARY,
+            )
+            msg.pack()
 
-        msg = ctk.CTkLabel(
-            empty_box,
-            text="No products match the selected search or filter criteria.",
-            font=FONT_SECTION,
-            text_color=COLOR_TEXT_PRIMARY,
-        )
-        msg.pack()
+            tip = ctk.CTkLabel(
+                self._empty_box,
+                text="Try adjusting your filter options or click 'Clear All' to reset.",
+                font=FONT_SMALL,
+                text_color=COLOR_TEXT_MUTED,
+            )
+            tip.pack(pady=(4, 16))
 
-        tip = ctk.CTkLabel(
-            empty_box,
-            text="Try adjusting your filter options or click 'Clear All' to reset.",
-            font=FONT_SMALL,
-            text_color=COLOR_TEXT_MUTED,
-        )
-        tip.pack(pady=(4, 16))
+            btn = SecondaryButton(self._empty_box, text="Clear All Filters", command=self.clear_all_filters, width=140)
+            btn.pack()
 
-        btn = SecondaryButton(empty_box, text="Clear All Filters", command=self.clear_all_filters, width=140)
-        btn.pack()
+        if self._empty_box.winfo_manager() != "pack":
+            self._empty_box.pack(expand=True, fill="both", pady=40)
 
-    def _render_row(self, prod: Product, is_alt: bool) -> None:
-        bg_col = COLOR_ROW_ALT if is_alt else "transparent"
-        row = ctk.CTkFrame(self.table_body, fg_color=bg_col, corner_radius=6, height=44)
-        row.pack(fill="x", pady=2, padx=4)
-        row.pack_propagate(False)
-
-        # SKU
-        sku_lbl = ctk.CTkLabel(row, text=prod.product_id, font=FONT_BODY, width=110, anchor="w")
-        sku_lbl.pack(side="left", padx=4)
-
-        # Name
-        name_lbl = ctk.CTkLabel(row, text=prod.name, font=FONT_BODY, width=200, anchor="w")
-        name_lbl.pack(side="left", padx=4)
-
-        # Category
-        cat_lbl = ctk.CTkLabel(row, text=prod.category, font=FONT_BODY, width=120, anchor="w", text_color=COLOR_TEXT_MUTED)
-        cat_lbl.pack(side="left", padx=4)
-
-        # Supplier
-        sup_lbl = ctk.CTkLabel(row, text=prod.supplier, font=FONT_BODY, width=130, anchor="w", text_color=COLOR_TEXT_MUTED)
-        sup_lbl.pack(side="left", padx=4)
-
-        # Quantity
-        qty_lbl = ctk.CTkLabel(row, text=str(prod.quantity), font=FONT_BODY, width=80, anchor="w")
-        qty_lbl.pack(side="left", padx=4)
-
-        # Price
-        price_lbl = ctk.CTkLabel(row, text=f"${prod.price:.2f}", font=FONT_BODY, width=80, anchor="w")
-        price_lbl.pack(side="left", padx=4)
-
-        # Status badge container
-        status_box = ctk.CTkFrame(row, fg_color="transparent", width=110)
-        status_box.pack(side="left", padx=4)
-        status_box.pack_propagate(False)
-        badge = StatusBadge(status_box, status=prod.stock_status)
-        badge.pack(side="left", pady=8)
-
-        # Action buttons
-        act_box = ctk.CTkFrame(row, fg_color="transparent", width=160)
-        act_box.pack(side="left", padx=4)
-        act_box.pack_propagate(False)
-
-        btn_view = SecondaryButton(
-            act_box,
-            text="👁️",
-            width=34,
-            height=30,
-            command=lambda p=prod: self._view_details(p),
-        )
-        btn_view.pack(side="left", padx=2)
-
-        btn_edit = PrimaryButton(
-            act_box,
-            text="✏️",
-            width=34,
-            height=30,
-            command=lambda p=prod: self._edit_product(p),
-        )
-        btn_edit.pack(side="left", padx=2)
-
-        btn_del = DangerButton(
-            act_box,
-            text="🗑️",
-            width=34,
-            height=30,
-            command=lambda p=prod: self._confirm_delete(p),
-        )
-        btn_del.pack(side="left", padx=2)
+    def _hide_empty_state(self) -> None:
+        """Hide empty state container if visible."""
+        if self._empty_box is not None and self._empty_box.winfo_manager() == "pack":
+            self._empty_box.pack_forget()
 
     def _open_add_modal(self) -> None:
         ProductFormModal(
@@ -599,6 +698,18 @@ class InventoryView(ctk.CTkFrame):
 
     def _on_product_mutated(self, _saved: Optional[Product]) -> None:
         """Called when a product was added, updated, or deleted."""
+        self._cached_categories = None
+        self._cached_suppliers = None
         self.refresh_products()
         if self.on_data_changed:
             self.on_data_changed()
+
+    def destroy(self) -> None:
+        """Safely cancel pending search timers and clean up pooled rows."""
+        if hasattr(self, "_search_after_id") and self._search_after_id:
+            try:
+                self.after_cancel(self._search_after_id)
+            except Exception:
+                pass
+            self._search_after_id = None
+        super().destroy()

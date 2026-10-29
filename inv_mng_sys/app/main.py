@@ -34,6 +34,7 @@ from app.ui.theme import (
     COLOR_PRIMARY,
     COLOR_SECONDARY,
     COLOR_SECONDARY_HOVER,
+    COLOR_SURFACE_BG,
     COLOR_TEXT_MUTED,
     COLOR_TEXT_PRIMARY,
     FONT_BODY,
@@ -63,10 +64,14 @@ class IMSApplication(ctk.CTk):
         self.views: dict[str, ctk.CTkFrame] = {}
         self.nav_bar: Optional[ctk.CTkFrame] = None
         self.content_container: Optional[ctk.CTkFrame] = None
+        self._data_dirty: bool = False
 
         # Apply persistent theme setting
         saved_theme = SettingsService.get_theme_preference(custom_path=self.db_path)
         ctk.set_appearance_mode(saved_theme)
+
+        # Ensure root background matches surface palette to prevent resize/redraw color flash
+        self.configure(fg_color=COLOR_SURFACE_BG)
 
         # Window configuration
         self.title("Inventory Management System (IMS) — BBAT104 (Q13)")
@@ -290,7 +295,8 @@ class IMSApplication(ctk.CTk):
         if self.current_view and self.current_view != self.views.get("dash"):
             self.current_view.pack_forget()
 
-        if "dash" not in self.views or not self.views["dash"].winfo_exists():
+        is_new = "dash" not in self.views or not self.views["dash"].winfo_exists()
+        if is_new:
             self.views["dash"] = DashboardFrame(
                 master=self.content_container,
                 user_session=self.current_session,
@@ -302,7 +308,10 @@ class IMSApplication(ctk.CTk):
 
         self.current_view = self.views["dash"]
         self.current_view.pack(fill="both", expand=True)
-        self.views["dash"].refresh_dashboard()
+
+        if is_new or self._data_dirty:
+            self.views["dash"].refresh_dashboard()
+            self._data_dirty = False
 
     def show_inventory_view(self, initial_criteria: Optional[FilterCriteria] = None) -> None:
         """Display the inventory management workspace (Phase 6), optionally with pre-applied filters."""
@@ -310,7 +319,8 @@ class IMSApplication(ctk.CTk):
         if self.current_view and self.current_view != self.views.get("inv"):
             self.current_view.pack_forget()
 
-        if "inv" not in self.views or not self.views["inv"].winfo_exists():
+        is_new = "inv" not in self.views or not self.views["inv"].winfo_exists()
+        if is_new:
             self.views["inv"] = InventoryView(
                 master=self.content_container,
                 on_data_changed=self._on_inventory_data_changed,
@@ -319,16 +329,24 @@ class IMSApplication(ctk.CTk):
             )
         elif initial_criteria is not None:
             self.views["inv"].apply_initial_criteria(initial_criteria)
-        else:
+        elif self._data_dirty:
             self.views["inv"].refresh_products()
+            self._data_dirty = False
 
         self.current_view = self.views["inv"]
         self.current_view.pack(fill="both", expand=True)
 
     def _on_inventory_data_changed(self) -> None:
-        """Signal dashboard to refresh when inventory data is mutated."""
+        """Signal views to refresh when inventory data is mutated."""
+        self._data_dirty = True
         if "dash" in self.views and self.views["dash"].winfo_exists():
-            self.views["dash"].refresh_dashboard()
+            if self.current_view == self.views["dash"]:
+                self.views["dash"].refresh_dashboard()
+                self._data_dirty = False
+        if "inv" in self.views and self.views["inv"].winfo_exists():
+            if self.current_view == self.views["inv"]:
+                self.views["inv"].refresh_products()
+                self._data_dirty = False
 
     def show_settings_view(self) -> None:
         """Display application settings."""

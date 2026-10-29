@@ -189,7 +189,16 @@ class FirstRunSetupFrame(ctk.CTkFrame):
         )
         self.btn_submit.bind("<Return>", lambda _e: (self._handle_setup(), "break")[1])
         self.btn_submit.bind("<space>", lambda _e: (self._handle_setup(), "break")[1])
-        self.after(50, self.entry_name.focus)
+        self._focus_after_id = self.after(50, self.entry_name.focus)
+
+    def destroy(self):
+        try:
+            if hasattr(self, "_focus_after_id") and self._focus_after_id:
+                self.after_cancel(self._focus_after_id)
+                self._focus_after_id = None
+        except Exception:
+            pass
+        super().destroy()
 
     def _handle_setup(self) -> None:
         self.banner.clear()
@@ -337,7 +346,7 @@ class LoginFrame(ctk.CTkFrame):
         )
         self.btn_login.bind("<Return>", lambda _e: (self._handle_login(), "break")[1])
         self.btn_login.bind("<space>", lambda _e: (self._handle_login(), "break")[1])
-        self.after(50, self.entry_user.focus)
+        self._focus_after_id = self.after(50, self.entry_user.focus)
 
         # Footer security tag
         footer = ctk.CTkLabel(
@@ -347,6 +356,15 @@ class LoginFrame(ctk.CTkFrame):
             text_color=COLOR_TEXT_MUTED,
         )
         footer.pack(pady=(0, 22))
+
+    def destroy(self):
+        try:
+            if hasattr(self, "_focus_after_id") and self._focus_after_id:
+                self.after_cancel(self._focus_after_id)
+                self._focus_after_id = None
+        except Exception:
+            pass
+        super().destroy()
 
     def _handle_login(self) -> None:
         self.banner.clear()

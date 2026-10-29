@@ -57,6 +57,89 @@ from app.ui.theme import (
 logger = logging.getLogger(__name__)
 
 
+class DashboardTableRow(ctk.CTkFrame):
+    """Pooled dashboard table row reused across refreshes to eliminate redraw flicker."""
+
+    def __init__(
+        self,
+        master,
+        on_view: Callable[[Product], None],
+        on_open: Callable[[Product], None],
+    ):
+        super().__init__(master, corner_radius=6, height=40)
+        self.pack_propagate(False)
+        self._on_view = on_view
+        self._on_open = on_open
+        self.product: Optional[Product] = None
+
+        self.sku_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY, width=100, anchor="w")
+        self.sku_lbl.pack(side="left", padx=4)
+
+        self.name_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY, width=200, anchor="w")
+        self.name_lbl.pack(side="left", padx=4)
+
+        self.cat_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY, width=120, anchor="w", text_color=COLOR_TEXT_MUTED)
+        self.cat_lbl.pack(side="left", padx=4)
+
+        self.sup_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY, width=130, anchor="w", text_color=COLOR_TEXT_MUTED)
+        self.sup_lbl.pack(side="left", padx=4)
+
+        self.qty_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY, width=70, anchor="w")
+        self.qty_lbl.pack(side="left", padx=4)
+
+        self.price_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY, width=75, anchor="w")
+        self.price_lbl.pack(side="left", padx=4)
+
+        status_box = ctk.CTkFrame(self, fg_color="transparent", width=105)
+        status_box.pack(side="left", padx=4)
+        status_box.pack_propagate(False)
+        self.badge = StatusBadge(status_box, status="In Stock")
+        self.badge.pack(side="left", pady=6)
+
+        act_box = ctk.CTkFrame(self, fg_color="transparent", width=130)
+        act_box.pack(side="left", padx=4)
+        act_box.pack_propagate(False)
+
+        self.btn_view = SecondaryButton(
+            act_box,
+            text="View",
+            width=54,
+            height=28,
+            command=self._handle_view,
+        )
+        self.btn_view.pack(side="left", padx=(0, 4), pady=6)
+
+        self.btn_open = PrimaryButton(
+            act_box,
+            text="Open ↗",
+            width=62,
+            height=28,
+            command=self._handle_open,
+        )
+        self.btn_open.pack(side="left", pady=6)
+
+    def _handle_view(self) -> None:
+        if self.product:
+            self._on_view(self.product)
+
+    def _handle_open(self) -> None:
+        if self.product:
+            self._on_open(self.product)
+
+    def update_product(self, prod: Product, is_alt: bool) -> None:
+        """Update row contents in-place without widget reconstruction."""
+        self.product = prod
+        bg_col = COLOR_ROW_ALT if is_alt else "transparent"
+        self.configure(fg_color=bg_col)
+        self.sku_lbl.configure(text=prod.product_id)
+        self.name_lbl.configure(text=prod.name)
+        self.cat_lbl.configure(text=prod.category)
+        self.sup_lbl.configure(text=prod.supplier)
+        self.qty_lbl.configure(text=str(prod.quantity))
+        self.price_lbl.configure(text=f"${prod.price:.2f}")
+        self.badge.update_status(prod.stock_status)
+
+
 def get_greeting() -> str:
     """Return appropriate time-of-day greeting."""
     hour = datetime.datetime.now().hour
@@ -87,6 +170,9 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         self.on_navigate_settings = on_navigate_settings
         self.on_logout = on_logout
         self.db_path = db_path
+        self._row_pool: list[DashboardTableRow] = []
+        self._empty_box: Optional[ctk.CTkFrame] = None
+        self._quick_search_after_id: Optional[str] = None
 
         self._build_ui()
         self.refresh_dashboard()
@@ -226,7 +312,8 @@ class DashboardFrame(ctk.CTkScrollableFrame):
             font=FONT_BODY,
         )
         self.quick_search_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
-        self.quick_search_entry.bind("<Return>", lambda e: self._handle_quick_search())
+        self.quick_search_entry.bind("<KeyRelease>", self._on_quick_search_key_release)
+        self.quick_search_entry.bind("<Return>", lambda e: self._on_quick_search_enter())
 
         btn_qsearch = PrimaryButton(search_row, text="Search", command=self._handle_quick_search, width=90)
         btn_qsearch.pack(side="left", padx=(0, 6))
@@ -322,11 +409,42 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         except Exception as exc:
             logger.exception("Error updating dashboard statistics.")
 
+    def _on_quick_search_key_release(self, event=None) -> None:
+        """Debounced live search on key release (200ms) to avoid keystroke flooding."""
+        if event and event.keysym in (
+            "Shift_L", "Shift_R", "Control_L", "Control_R",
+            "Alt_L", "Alt_R", "Caps_Lock", "Tab", "Escape",
+            "Return", "Up", "Down", "Left", "Right",
+        ):
+            return
+        if self._quick_search_after_id:
+            try:
+                self.after_cancel(self._quick_search_after_id)
+            except Exception:
+                pass
+        self._quick_search_after_id = self.after(200, self._handle_quick_search)
+
+    def _on_quick_search_enter(self) -> None:
+        """Immediate search execution when Enter is pressed."""
+        if self._quick_search_after_id:
+            try:
+                self.after_cancel(self._quick_search_after_id)
+            except Exception:
+                pass
+            self._quick_search_after_id = None
+        self._handle_quick_search()
+
     def _handle_quick_search(self) -> None:
         query = self.quick_search_entry.get().strip()
         self._render_table(query if query else None)
 
     def _handle_clear_search(self) -> None:
+        if self._quick_search_after_id:
+            try:
+                self.after_cancel(self._quick_search_after_id)
+            except Exception:
+                pass
+            self._quick_search_after_id = None
         self.quick_search_entry.delete(0, "end")
         self._render_table(None)
 
@@ -337,12 +455,8 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         self._navigate_to_inventory(criteria)
 
     def _render_table(self, query: Optional[str] = None) -> None:
-        # Detach table frame during update to batch rendering and eliminate redraw flicker
-        self.table_body.pack_forget()
+        """Render recent/search inventory records using row widget recycling (zero redraw flicker)."""
         try:
-            for child in self.table_body.winfo_children():
-                child.destroy()
-
             if query:
                 prods = search_products_quick(query, custom_path=self.db_path)
                 self.table_title.configure(text=f"Quick-Search Results for '{query}' ({len(prods)} found)")
@@ -351,62 +465,56 @@ class DashboardFrame(ctk.CTkScrollableFrame):
                 self.table_title.configure(text="Recent Inventory Records (Top 15)")
 
             if not prods:
-                empty_box = ctk.CTkFrame(self.table_body, fg_color="transparent")
-                empty_box.pack(fill="both", expand=True, pady=30)
-                ctk.CTkLabel(empty_box, text="📦", font=(FONT_BODY[0], 36)).pack()
-                ctk.CTkLabel(
-                    empty_box,
-                    text="No inventory products found." if not query else f"No products matching '{query}'.",
-                    font=FONT_BODY,
-                    text_color=COLOR_TEXT_MUTED,
-                ).pack(pady=4)
-                return
+                for row in self._row_pool:
+                    row.pack_forget()
+                self._show_empty_state(query)
+            else:
+                self._hide_empty_state()
+                for idx, prod in enumerate(prods):
+                    if idx < len(self._row_pool):
+                        row = self._row_pool[idx]
+                        row.update_product(prod, is_alt=(idx % 2 == 1))
+                        if row.winfo_manager() != "pack":
+                            row.pack(fill="x", pady=2, padx=4)
+                    else:
+                        row = DashboardTableRow(
+                            master=self.table_body,
+                            on_view=lambda p: ProductDetailsModal(parent=self.winfo_toplevel(), product=p),
+                            on_open=lambda p: self._navigate_to_inventory(FilterCriteria(search_query=p.product_id)),
+                        )
+                        row.update_product(prod, is_alt=(idx % 2 == 1))
+                        row.pack(fill="x", pady=2, padx=4)
+                        self._row_pool.append(row)
 
-            for idx, prod in enumerate(prods):
-                bg_col = COLOR_ROW_ALT if (idx % 2 == 1) else "transparent"
-                row = ctk.CTkFrame(self.table_body, fg_color=bg_col, corner_radius=6, height=40)
-                row.pack(fill="x", pady=2, padx=4)
-                row.pack_propagate(False)
-
-                ctk.CTkLabel(row, text=prod.product_id, font=FONT_BODY, width=100, anchor="w").pack(side="left", padx=4)
-                ctk.CTkLabel(row, text=prod.name, font=FONT_BODY, width=200, anchor="w").pack(side="left", padx=4)
-                ctk.CTkLabel(row, text=prod.category, font=FONT_BODY, width=120, anchor="w", text_color=COLOR_TEXT_MUTED).pack(side="left", padx=4)
-                ctk.CTkLabel(row, text=prod.supplier, font=FONT_BODY, width=130, anchor="w", text_color=COLOR_TEXT_MUTED).pack(side="left", padx=4)
-                ctk.CTkLabel(row, text=str(prod.quantity), font=FONT_BODY, width=70, anchor="w").pack(side="left", padx=4)
-                ctk.CTkLabel(row, text=f"${prod.price:.2f}", font=FONT_BODY, width=75, anchor="w").pack(side="left", padx=4)
-
-                status_box = ctk.CTkFrame(row, fg_color="transparent", width=105)
-                status_box.pack(side="left", padx=4)
-                status_box.pack_propagate(False)
-                badge = StatusBadge(status_box, status=prod.stock_status)
-                badge.pack(side="left", pady=6)
-
-                act_box = ctk.CTkFrame(row, fg_color="transparent", width=130)
-                act_box.pack(side="left", padx=4)
-                act_box.pack_propagate(False)
-
-                btn_view = SecondaryButton(
-                    act_box,
-                    text="View",
-                    width=54,
-                    height=28,
-                    command=lambda p=prod: ProductDetailsModal(parent=self.winfo_toplevel(), product=p),
-                )
-                btn_view.pack(side="left", padx=(0, 4), pady=6)
-
-                btn_open = PrimaryButton(
-                    act_box,
-                    text="Open ↗",
-                    width=62,
-                    height=28,
-                    command=lambda p=prod: self._navigate_to_inventory(FilterCriteria(search_query=p.product_id)),
-                )
-                btn_open.pack(side="left", pady=6)
+                # Unmap any excess rows
+                for idx in range(len(prods), len(self._row_pool)):
+                    self._row_pool[idx].pack_forget()
 
         except Exception as exc:
             logger.exception("Error rendering dashboard table.")
-        finally:
-            self.table_body.pack(fill="both", expand=True, padx=8, pady=(0, 16))
+
+    def _show_empty_state(self, query: Optional[str] = None) -> None:
+        """Display helpful empty state container."""
+        if self._empty_box is None:
+            self._empty_box = ctk.CTkFrame(self.table_body, fg_color="transparent")
+            ctk.CTkLabel(self._empty_box, text="📦", font=(FONT_BODY[0], 36)).pack()
+            self._empty_lbl = ctk.CTkLabel(
+                self._empty_box,
+                text="",
+                font=FONT_BODY,
+                text_color=COLOR_TEXT_MUTED,
+            )
+            self._empty_lbl.pack(pady=4)
+
+        msg = "No inventory products found." if not query else f"No products matching '{query}'."
+        self._empty_lbl.configure(text=msg)
+        if self._empty_box.winfo_manager() != "pack":
+            self._empty_box.pack(fill="both", expand=True, pady=30)
+
+    def _hide_empty_state(self) -> None:
+        """Hide empty state container if visible."""
+        if self._empty_box is not None and self._empty_box.winfo_manager() == "pack":
+            self._empty_box.pack_forget()
 
     def _open_add_modal(self) -> None:
         ProductFormModal(
@@ -415,6 +523,16 @@ class DashboardFrame(ctk.CTkScrollableFrame):
             product=None,
             db_path=self.db_path,
         )
+
+    def destroy(self) -> None:
+        """Safely cancel pending search timers."""
+        if hasattr(self, "_quick_search_after_id") and self._quick_search_after_id:
+            try:
+                self.after_cancel(self._quick_search_after_id)
+            except Exception:
+                pass
+            self._quick_search_after_id = None
+        super().destroy()
 
 
 # Backward-compatible alias for any legacy imports

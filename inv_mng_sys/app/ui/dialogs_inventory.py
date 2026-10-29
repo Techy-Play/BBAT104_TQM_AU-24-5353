@@ -51,6 +51,7 @@ class ProductFormModal(ctk.CTkToplevel):
         db_path: Optional[str] = None,
     ):
         super().__init__(parent)
+        self.withdraw()  # Prevent unstyled flash during layout construction
         self.on_success = on_success
         self.product = product
         self.db_path = db_path
@@ -75,9 +76,9 @@ class ProductFormModal(ctk.CTkToplevel):
         except Exception:
             self.geometry(f"{width}x{height}")
 
-        self.grab_set()
-
         self._build_ui(title_text)
+        self.deiconify()
+        self.grab_set()
 
     def _build_ui(self, title_text: str) -> None:
         # Direct CardFrame without CTkScrollableFrame to eliminate scrolling completely
@@ -346,6 +347,7 @@ class ProductDetailsModal(ctk.CTkToplevel):
 
     def __init__(self, parent, product: Product):
         super().__init__(parent)
+        self.withdraw()  # Prevent unstyled flash during layout construction
         self.product = product
         self.title(f"Product Details — {product.product_id}")
         width, height = 580, 420
@@ -364,8 +366,6 @@ class ProductDetailsModal(ctk.CTkToplevel):
             self.geometry(f"{width}x{height}+{pos_x}+{pos_y}")
         except Exception:
             self.geometry(f"{width}x{height}")
-
-        self.grab_set()
 
         card = CardFrame(self)
         card.pack(fill="both", expand=True, padx=16, pady=16)
@@ -454,11 +454,14 @@ class ProductDetailsModal(ctk.CTkToplevel):
         self.btn_close.bind("<space>", lambda _e: (self.destroy(), "break")[1])
 
         self._focus_after_id = self.after(50, self.btn_close.focus_set)
+        self.deiconify()
+        self.grab_set()
 
     def destroy(self):
         try:
             if hasattr(self, "_focus_after_id") and self._focus_after_id:
                 self.after_cancel(self._focus_after_id)
+                self._focus_after_id = None
         except Exception:
             pass
         super().destroy()

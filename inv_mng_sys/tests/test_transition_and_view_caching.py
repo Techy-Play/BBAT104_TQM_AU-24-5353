@@ -159,3 +159,80 @@ class TestTransitionAndViewCaching(unittest.TestCase):
         self.assertIn('Name: "{autodesktop}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; IconFilename: "{app}\\app_icon.ico"', iss_content)
         # Must configure uninstall display icon
         self.assertIn('UninstallDisplayIcon={app}\\app_icon.ico', iss_content)
+
+    def test_05_inventory_row_recycling_eliminates_widget_churn(self):
+        """Verify that InventoryView reuses pooled row widgets in-place rather than destroying them."""
+        self.app.show_app_shell(self.session)
+        self.app.show_inventory_view()
+        inv_view = self.app.views["inv"]
+
+        self.assertGreaterEqual(len(inv_view._row_pool), 5)
+        original_row_0 = inv_view._row_pool[0]
+        original_row_1 = inv_view._row_pool[1]
+
+        # Trigger a search filter that returns a subset of items
+        inv_view.refresh_products(FilterCriteria(search_query="ITEM-001"))
+        self.assertEqual(len(inv_view.products), 1)
+
+        # Confirm the first pooled row was reused in-place
+        self.assertIs(inv_view._row_pool[0], original_row_0)
+        self.assertEqual(inv_view._row_pool[0].sku_lbl.cget("text"), "ITEM-001")
+        # Confirm excess rows from prior query are unmapped (hidden) rather than crashed
+        self.assertEqual(inv_view._row_pool[1].winfo_manager(), "")
+
+        # Reset filters: should re-use both rows
+        inv_view.clear_all_filters()
+        self.assertIs(inv_view._row_pool[0], original_row_0)
+        self.assertIs(inv_view._row_pool[1], original_row_1)
+        self.assertEqual(inv_view._row_pool[0].winfo_manager(), "pack")
+        self.assertEqual(inv_view._row_pool[1].winfo_manager(), "pack")
+
+    def test_06_dashboard_row_recycling(self):
+        """Verify that DashboardFrame reuses pooled row widgets in-place across refreshes."""
+        self.app.show_app_shell(self.session)
+        dash = self.app.views["dash"]
+
+        self.assertGreaterEqual(len(dash._row_pool), 5)
+        initial_row_0 = dash._row_pool[0]
+
+        dash.refresh_dashboard()
+        self.assertIs(dash._row_pool[0], initial_row_0)
+
+    def test_07_status_badge_update_status(self):
+        """Verify StatusBadge update_status alters visual presentation without recreating widgets."""
+        from app.ui.components import StatusBadge
+        from app.ui.theme import COLOR_DANGER, COLOR_SUCCESS
+
+        badge = StatusBadge(self.app, status="In Stock")
+        try:
+            self.assertEqual(badge._lbl.cget("text"), "In Stock")
+            self.assertEqual(badge.cget("fg_color"), COLOR_SUCCESS)
+
+            badge.update_status("Out of Stock")
+            self.assertEqual(badge._lbl.cget("text"), "Out of Stock")
+            self.assertEqual(badge.cget("fg_color"), COLOR_DANGER)
+        finally:
+            badge.destroy()
+
+    def test_08_search_debouncing_timer_management(self):
+        """Verify that rapid search key releases debounce properly using after/after_cancel."""
+        self.app.show_app_shell(self.session)
+        self.app.show_inventory_view()
+        inv = self.app.views["inv"]
+
+        class DummyEvent:
+            keysym = "a"
+
+        inv._on_search_key_release(DummyEvent())
+        first_timer_id = inv._search_after_id
+        self.assertIsNotNone(first_timer_id)
+
+        # Simulate second rapid keystroke
+        inv._on_search_key_release(DummyEvent())
+        second_timer_id = inv._search_after_id
+        self.assertIsNotNone(second_timer_id)
+        self.assertNotEqual(first_timer_id, second_timer_id)
+
+        # Cancel on enter
+        inv._on_search_enter()
+        self.assertIsNone(inv._search_after_id)

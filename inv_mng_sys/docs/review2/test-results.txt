@@ -1,94 +1,486 @@
-======================================================================
-BBAT104 Fundamentals of Total Quality Management — Review 2 Test Results
-System: Inventory Management System (IMS) — Quality Goal: Q13 Faster Search & Retrieval
-Test Run Timestamp: 2026-10-11T23:59:27+05:30
-Environment: Windows 11 / Python 3.11.9 / SQLite 3.45.3 / CustomTkinter 5.2.2
-Command: python -m unittest discover -s tests -p "test_*.py" -v
-======================================================================
-
+test_01_delete_user_password_validation (test_account_deletion_and_setup.TestAccountDeletionAndSetup.test_01_delete_user_password_validation)
+Confirm account deletion strictly validates password before wiping records. ... 2026-10-29 19:27:09,054 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpkhbzguov\test_delete_setup.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:09,142 [INFO] app.authentication.setup: Successfully provisioned initial user 'alexm' (ID: 1)
+2026-10-29 19:27:09,161 [INFO] app.inventory.crud: Created product 'Industrial Torque Wrench' (SKU-8001) with ID 1.
+2026-10-29 19:27:09,385 [WARNING] app.settings.settings: Account deletion aborted: incorrect password for user ID 1.
+ok
+test_02_delete_user_and_reset_database_success (test_account_deletion_and_setup.TestAccountDeletionAndSetup.test_02_delete_user_and_reset_database_success)
+Confirm correct password wipes all products, users, and returns app to first-run state. ... 2026-10-29 19:27:09,409 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp_ldzosk0\test_delete_setup.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:09,499 [INFO] app.authentication.setup: Successfully provisioned initial user 'alexm' (ID: 1)
+2026-10-29 19:27:09,517 [INFO] app.inventory.crud: Created product 'Industrial Torque Wrench' (SKU-8001) with ID 1.
+invalid command name "1606643680384update"
+    while executing
+"1606643680384update"
+    ("after" script)
+invalid command name "1606643681536_windows_set_titlebar_icon"
+    while executing
+"1606643681536_windows_set_titlebar_icon"
+    ("after" script)
+2026-10-29 19:27:09,712 [WARNING] app.settings.settings: Permanently deleting user 'alexm' (ID 1) and resetting local database...
+2026-10-29 19:27:09,734 [INFO] app.settings.settings: Database reset complete. All products, users, and session settings cleared.
+ok
+test_03_first_run_setup_frame_layout_and_registration (test_account_deletion_and_setup.TestAccountDeletionAndSetup.test_03_first_run_setup_frame_layout_and_registration)
+Verify FirstRunSetupFrame is non-scrolling (no CTkScrollableFrame) and submits successfully. ... 2026-10-29 19:27:09,757 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpox3huwwc\test_delete_setup.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:09,845 [INFO] app.authentication.setup: Successfully provisioned initial user 'alexm' (ID: 1)
+2026-10-29 19:27:09,866 [INFO] app.inventory.crud: Created product 'Industrial Torque Wrench' (SKU-8001) with ID 1.
+invalid command name "1606643680960_windows_set_titlebar_icon"
+    while executing
+"1606643680960_windows_set_titlebar_icon"
+    ("after" script)
+2026-10-29 19:27:10,056 [WARNING] app.settings.settings: Permanently deleting user 'alexm' (ID 1) and resetting local database...
+2026-10-29 19:27:10,079 [INFO] app.settings.settings: Database reset complete. All products, users, and session settings cleared.
+2026-10-29 19:27:11,031 [INFO] app.authentication.setup: Successfully provisioned initial user 'morganf' (ID: 2)
+2026-10-29 19:27:11,031 [INFO] app.ui.views_auth: First-run setup completed for 'morganf'.
+ok
+test_04_delete_account_modal_cancellation_and_confirmation (test_account_deletion_and_setup.TestAccountDeletionAndSetup.test_04_delete_account_modal_cancellation_and_confirmation)
+Confirm DeleteAccountModal keyboard navigation, cancellation, and execution. ... 2026-10-29 19:27:11,100 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpxk1ampky\test_delete_setup.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:11,198 [INFO] app.authentication.setup: Successfully provisioned initial user 'alexm' (ID: 1)
+2026-10-29 19:27:11,221 [INFO] app.inventory.crud: Created product 'Industrial Torque Wrench' (SKU-8001) with ID 1.
+invalid command name "1606643833920check_dpi_scaling"
+    while executing
+"1606643833920check_dpi_scaling"
+    ("after" script)
+2026-10-29 19:27:11,535 [WARNING] app.settings.settings: Account deletion aborted: incorrect password for user ID 1.
+2026-10-29 19:27:11,609 [WARNING] app.settings.settings: Permanently deleting user 'alexm' (ID 1) and resetting local database...
+2026-10-29 19:27:11,635 [INFO] app.settings.settings: Database reset complete. All products, users, and session settings cleared.
+ok
 test_01_first_user_creation (test_authentication.TestAuthenticationAndSecurity.test_01_first_user_creation)
-Confirm first-run detection and initial user creation. ... ok
+Confirm first-run detection and initial user creation. ... 2026-10-29 19:27:11,694 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp8cv7pj9b\test_auth.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:11,805 [INFO] app.authentication.setup: Successfully provisioned initial user 'lokesh' (ID: 1)
+ok
 test_02_username_uniqueness (test_authentication.TestAuthenticationAndSecurity.test_02_username_uniqueness)
-Confirm duplicate username registration is rejected. ... ok
+Confirm duplicate username registration is rejected. ... 2026-10-29 19:27:11,831 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp7jqqsisa\test_auth.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:11,932 [INFO] app.authentication.setup: Successfully provisioned initial user 'unique_user' (ID: 1)
+ok
 test_03_password_hashing (test_authentication.TestAuthenticationAndSecurity.test_03_password_hashing)
-Confirm PBKDF2 password hashing produces distinct hashes with different salts. ... ok
+Confirm PBKDF2 password hashing produces distinct hashes with different salts. ... 2026-10-29 19:27:11,952 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp___60og7\test_auth.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+ok
 test_04_correct_password_verification (test_authentication.TestAuthenticationAndSecurity.test_04_correct_password_verification)
-Confirm correct password verifies and authenticates. ... ok
+Confirm correct password verifies and authenticates. ... 2026-10-29 19:27:12,095 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpqh_tko1c\test_auth.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:12,305 [INFO] app.authentication.setup: Successfully provisioned initial user 'lokesh' (ID: 1)
+2026-10-29 19:27:12,373 [INFO] app.authentication.login: User 'lokesh' authenticated successfully (keep_logged_in=False).
+ok
 test_05_incorrect_password_rejection (test_authentication.TestAuthenticationAndSecurity.test_05_incorrect_password_rejection)
-Confirm incorrect password or nonexistent user is rejected with generic error. ... Authentication failed: invalid password for user 'lokesh'.
-Authentication failed: user 'unknown_user' not found.
+Confirm incorrect password or nonexistent user is rejected with generic error. ... 2026-10-29 19:27:12,390 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpt5gexf9s\test_auth.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:12,484 [INFO] app.authentication.setup: Successfully provisioned initial user 'lokesh' (ID: 1)
+2026-10-29 19:27:12,568 [WARNING] app.authentication.login: Authentication failed: invalid password for user 'lokesh'.
+2026-10-29 19:27:12,573 [WARNING] app.authentication.login: Authentication failed: user 'unknown_user' not found.
 ok
 test_06_password_not_stored_as_plaintext (test_authentication.TestAuthenticationAndSecurity.test_06_password_not_stored_as_plaintext)
-Verify the database strictly stores salted hashes, never plaintext passwords. ... ok
+Verify the database strictly stores salted hashes, never plaintext passwords. ... 2026-10-29 19:27:12,591 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmphq1eugag\test_auth.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:12,684 [INFO] app.authentication.setup: Successfully provisioned initial user 'security_tester' (ID: 1)
+ok
 test_07_session_token_generation (test_authentication.TestAuthenticationAndSecurity.test_07_session_token_generation)
-Confirm session token generation produces 64-character unique cryptographic strings. ... ok
+Confirm session token generation produces 64-character unique cryptographic strings. ... 2026-10-29 19:27:12,706 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpjcf15e_8\test_auth.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+ok
 test_08_keep_me_logged_in_behavior (test_authentication.TestAuthenticationAndSecurity.test_08_keep_me_logged_in_behavior)
-Verify Keep Me Logged In sets session tokens and preferences correctly. ... ok
+Verify Keep Me Logged In sets session tokens and preferences correctly. ... 2026-10-29 19:27:12,728 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpflaedwwl\test_auth.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:12,824 [INFO] app.authentication.setup: Successfully provisioned initial user 'lokesh' (ID: 1)
+2026-10-29 19:27:12,896 [INFO] app.authentication.login: User 'lokesh' authenticated successfully (keep_logged_in=False).
+2026-10-29 19:27:12,986 [INFO] app.authentication.login: User 'lokesh' authenticated successfully (keep_logged_in=True).
+ok
 test_09_session_restoration (test_authentication.TestAuthenticationAndSecurity.test_09_session_restoration)
-Confirm valid Keep Me Logged In session is restored automatically. ... ok
+Confirm valid Keep Me Logged In session is restored automatically. ... 2026-10-29 19:27:13,007 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpck0knfpi\test_auth.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:13,104 [INFO] app.authentication.setup: Successfully provisioned initial user 'lokesh' (ID: 1)
+2026-10-29 19:27:13,111 [INFO] app.authentication.login: Session restored successfully for user 'lokesh'.
+ok
 test_10_session_invalidation_logout (test_authentication.TestAuthenticationAndSecurity.test_10_session_invalidation_logout)
-Confirm logout invalidates session token and prevents restoration. ... ok
+Confirm logout invalidates session token and prevents restoration. ... 2026-10-29 19:27:13,130 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmprhdxbe1w\test_auth.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:13,223 [INFO] app.authentication.setup: Successfully provisioned initial user 'lokesh' (ID: 1)
+2026-10-29 19:27:13,242 [INFO] app.authentication.login: User ID 1 logged out. Session invalidated.
+ok
 test_11_user_profile_retrieval_and_update (test_authentication.TestAuthenticationAndSecurity.test_11_user_profile_retrieval_and_update)
-Confirm profile retrieval, editing, and password change. ... Authentication failed: invalid password for user 'profile_user'.
+Confirm profile retrieval, editing, and password change. ... 2026-10-29 19:27:13,269 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmprq165wgd\test_auth.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:13,354 [INFO] app.authentication.setup: Successfully provisioned initial user 'profile_user' (ID: 1)
+2026-10-29 19:27:13,506 [INFO] app.authentication.login: Password changed successfully for user ID 1.
+2026-10-29 19:27:13,578 [INFO] app.authentication.login: User 'profile_user' authenticated successfully (keep_logged_in=False).
+2026-10-29 19:27:13,643 [WARNING] app.authentication.login: Authentication failed: invalid password for user 'profile_user'.
 ok
 test_12_persistence_after_database_close_reopen (test_authentication.TestAuthenticationAndSecurity.test_12_persistence_after_database_close_reopen)
-Confirm session and user persistence across database reopen and restart. ... ok
+Confirm session and user persistence across database reopen and restart. ... 2026-10-29 19:27:13,662 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpfvarpg2s\test_auth.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:13,747 [INFO] app.authentication.setup: Successfully provisioned initial user 'lokesh' (ID: 1)
+2026-10-29 19:27:13,754 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpfvarpg2s\test_auth.db (existed_before=True, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:13,761 [INFO] app.authentication.login: Session restored successfully for user 'lokesh'.
+ok
 test_constraints_and_validation (test_database.TestDatabaseLayer.test_constraints_and_validation)
-Confirm database table constraints prevent invalid data storage. ... Transaction rolled back due to error: CHECK constraint failed: quantity >= 0
-Transaction rolled back due to error: CHECK constraint failed: price >= 0.0
+Confirm database table constraints prevent invalid data storage. ... 2026-10-29 19:27:13,777 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp96eunx9v\test_ims.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:13,785 [ERROR] app.database.connection: Transaction rolled back due to error: CHECK constraint failed: quantity >= 0
+2026-10-29 19:27:13,789 [ERROR] app.database.connection: Transaction rolled back due to error: CHECK constraint failed: price >= 0.0
 ok
 test_init_database_creates_tables_and_indexes (test_database.TestDatabaseLayer.test_init_database_creates_tables_and_indexes)
-Confirm database initializes required tables and Q13 indexes. ... ok
+Confirm database initializes required tables and Q13 indexes. ... 2026-10-29 19:27:13,807 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp_h2e_c_7\test_ims.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+ok
 test_persistence_across_connection_reopen (test_database.TestDatabaseLayer.test_persistence_across_connection_reopen)
-Confirm data persists across connection close, reopen, and app restart. ... ok
+Confirm data persists across connection close, reopen, and app restart. ... 2026-10-29 19:27:13,844 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp29l1egum\test_ims.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:13,882 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp29l1egum\test_ims.db (existed_before=True, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+ok
 test_q13_explain_query_plan_uses_index (test_database.TestDatabaseLayer.test_q13_explain_query_plan_uses_index)
-Verify that SQLite query planner utilizes indexes for fast lookup (Q13). ... ok
+Verify that SQLite query planner utilizes indexes for fast lookup (Q13). ... 2026-10-29 19:27:13,906 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpc_9iekmz\test_ims.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+ok
 test_transaction_rollback_on_failure (test_database.TestDatabaseLayer.test_transaction_rollback_on_failure)
-Confirm database rolls back failed transactions properly. ... Transaction rolled back due to error: UNIQUE constraint failed: products.product_id
+Confirm database rolls back failed transactions properly. ... 2026-10-29 19:27:14,067 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpvq_xb6ec\test_ims.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:14,091 [ERROR] app.database.connection: Transaction rolled back due to error: UNIQUE constraint failed: products.product_id
+ok
+test_01_default_theme_is_device_default_system (test_deeplinks_and_theme.TestDeepLinksAndThemePersistence.test_01_default_theme_is_device_default_system)
+Confirm default theme is 'system' (device default) when unconfigured. ... 2026-10-29 19:27:14,114 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpms4qmpm0\test_ims.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:14,142 [INFO] app.inventory.crud: Created product 'Industrial Drill Press' (SKU-101) with ID 1.
+2026-10-29 19:27:14,164 [INFO] app.inventory.crud: Created product 'Safety Goggles' (SKU-102) with ID 2.
+2026-10-29 19:27:14,185 [INFO] app.inventory.crud: Created product 'Heavy Duty Gloves' (SKU-103) with ID 3.
+ok
+test_02_theme_persistence_and_reopen (test_deeplinks_and_theme.TestDeepLinksAndThemePersistence.test_02_theme_persistence_and_reopen)
+Confirm theme selection persists across saves and database reopen. ... 2026-10-29 19:27:14,208 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp8ihqcc3f\test_ims.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:14,235 [INFO] app.inventory.crud: Created product 'Industrial Drill Press' (SKU-101) with ID 1.
+2026-10-29 19:27:14,258 [INFO] app.inventory.crud: Created product 'Safety Goggles' (SKU-102) with ID 2.
+2026-10-29 19:27:14,279 [INFO] app.inventory.crud: Created product 'Heavy Duty Gloves' (SKU-103) with ID 3.
+2026-10-29 19:27:14,289 [INFO] app.settings.settings: Persisted theme preference 'dark' in database.
+2026-10-29 19:27:14,303 [INFO] app.settings.settings: Persisted theme preference 'light' in database.
+ok
+test_03_theme_helpers_and_symbols (test_deeplinks_and_theme.TestDeepLinksAndThemePersistence.test_03_theme_helpers_and_symbols)
+Verify theme display labels include appropriate theme-aware symbols. ... 2026-10-29 19:27:14,329 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpjpdbohry\test_ims.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:14,352 [INFO] app.inventory.crud: Created product 'Industrial Drill Press' (SKU-101) with ID 1.
+2026-10-29 19:27:14,372 [INFO] app.inventory.crud: Created product 'Safety Goggles' (SKU-102) with ID 2.
+2026-10-29 19:27:14,390 [INFO] app.inventory.crud: Created product 'Heavy Duty Gloves' (SKU-103) with ID 3.
+ok
+test_04_dashboard_statcard_deep_links (test_deeplinks_and_theme.TestDeepLinksAndThemePersistence.test_04_dashboard_statcard_deep_links)
+Verify StatCard deep link clicks route to Inventory with exact FilterCriteria. ... 2026-10-29 19:27:14,406 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpkhkmgsgp\test_ims.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:14,434 [INFO] app.inventory.crud: Created product 'Industrial Drill Press' (SKU-101) with ID 1.
+2026-10-29 19:27:14,453 [INFO] app.inventory.crud: Created product 'Safety Goggles' (SKU-102) with ID 2.
+2026-10-29 19:27:14,472 [INFO] app.inventory.crud: Created product 'Heavy Duty Gloves' (SKU-103) with ID 3.
+ok
+test_05_inventory_view_accepts_initial_criteria (test_deeplinks_and_theme.TestDeepLinksAndThemePersistence.test_05_inventory_view_accepts_initial_criteria)
+Verify InventoryView applies initial_criteria on instantiation. ... 2026-10-29 19:27:15,135 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpubnv9pyq\test_ims.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:15,161 [INFO] app.inventory.crud: Created product 'Industrial Drill Press' (SKU-101) with ID 1.
+2026-10-29 19:27:15,179 [INFO] app.inventory.crud: Created product 'Safety Goggles' (SKU-102) with ID 2.
+2026-10-29 19:27:15,197 [INFO] app.inventory.crud: Created product 'Heavy Duty Gloves' (SKU-103) with ID 3.
+invalid command name "1606643274624_windows_set_titlebar_icon"
+    while executing
+"1606643274624_windows_set_titlebar_icon"
+    ("after" script)
+ok
+test_06_app_window_geometry_logic (test_deeplinks_and_theme.TestDeepLinksAndThemePersistence.test_06_app_window_geometry_logic)
+Verify IMSApplication _resize_and_center calculates appropriate geometries. ... 2026-10-29 19:27:15,601 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpef98544y\test_ims.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:15,627 [INFO] app.inventory.crud: Created product 'Industrial Drill Press' (SKU-101) with ID 1.
+2026-10-29 19:27:15,645 [INFO] app.inventory.crud: Created product 'Safety Goggles' (SKU-102) with ID 2.
+2026-10-29 19:27:15,665 [INFO] app.inventory.crud: Created product 'Heavy Duty Gloves' (SKU-103) with ID 3.
+invalid command name "1606643274368_windows_set_titlebar_icon"
+    while executing
+"1606643274368_windows_set_titlebar_icon"
+    ("after" script)
+2026-10-29 19:27:15,811 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpef98544y\test_ims.db (existed_before=True, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:15,815 [INFO] ims: First-run detected: routing to setup wizard.
+2026-10-29 19:27:17,283 [INFO] app.authentication.login: User ID 1 logged out. Session invalidated.
 ok
 test_01_product_creation (test_inventory_crud.TestInventoryCRUDAndDashboard.test_01_product_creation)
-Confirm valid product creation and attribute persistence. ... ok
+Confirm valid product creation and attribute persistence. ... 2026-10-29 19:27:17,603 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpyojde8fh\test_inventory.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:17,630 [INFO] app.inventory.crud: Created product 'Digital Multimeter' (SKU-1001) with ID 1.
+ok
 test_02_product_retrieval (test_inventory_crud.TestInventoryCRUDAndDashboard.test_02_product_retrieval)
-Confirm product retrieval by primary ID and unique SKU. ... ok
+Confirm product retrieval by primary ID and unique SKU. ... 2026-10-29 19:27:17,649 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpo2cfd3du\test_inventory.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:17,675 [INFO] app.inventory.crud: Created product 'Soldering Station' (SKU-2002) with ID 1.
+ok
 test_03_product_updates (test_inventory_crud.TestInventoryCRUDAndDashboard.test_03_product_updates)
-Confirm product modification and updated_at modification. ... ok
+Confirm product modification and updated_at modification. ... 2026-10-29 19:27:17,707 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpujbwbk2z\test_inventory.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:17,733 [INFO] app.inventory.crud: Created product 'Wire Stripper' (SKU-3003) with ID 1.
+2026-10-29 19:27:17,761 [INFO] app.inventory.crud: Updated product ID 1 ('Heavy-Duty Wire Stripper').
+ok
 test_04_product_deletion (test_inventory_crud.TestInventoryCRUDAndDashboard.test_04_product_deletion)
-Confirm product deletion removes record from database. ... ok
+Confirm product deletion removes record from database. ... 2026-10-29 19:27:17,782 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp6htrxf7n\test_inventory.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:17,809 [INFO] app.inventory.crud: Created product 'Temporary Item' (SKU-DEL) with ID 1.
+2026-10-29 19:27:17,824 [INFO] app.inventory.crud: Deleted product ID 1 ('Temporary Item').
+ok
 test_05_duplicate_product_id_rejection (test_inventory_crud.TestInventoryCRUDAndDashboard.test_05_duplicate_product_id_rejection)
-Confirm uniqueness constraint on Product ID / SKU. ... ok
+Confirm uniqueness constraint on Product ID / SKU. ... 2026-10-29 19:27:17,852 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp1m0loxd8\test_inventory.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:17,878 [INFO] app.inventory.crud: Created product 'First Item' (SKU-UNIQUE) with ID 1.
+2026-10-29 19:27:17,901 [INFO] app.inventory.crud: Created product 'Second Item' (SKU-SECOND) with ID 2.
+ok
 test_06_non_negative_quantity_and_price_validation (test_inventory_crud.TestInventoryCRUDAndDashboard.test_06_non_negative_quantity_and_price_validation)
-Confirm validation prevents negative quantities or prices. ... ok
+Confirm validation prevents negative quantities or prices. ... 2026-10-29 19:27:17,930 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpb4izt70p\test_inventory.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+ok
 test_07_empty_required_fields_rejection (test_inventory_crud.TestInventoryCRUDAndDashboard.test_07_empty_required_fields_rejection)
-Confirm empty strings for required attributes are rejected. ... ok
+Confirm empty strings for required attributes are rejected. ... 2026-10-29 19:27:17,953 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpov74z8or\test_inventory.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+ok
 test_08_stock_status_computation (test_inventory_crud.TestInventoryCRUDAndDashboard.test_08_stock_status_computation)
-Confirm smart calculation of Stock Status based on quantities. ... ok
+Confirm smart calculation of Stock Status based on quantities. ... 2026-10-29 19:27:17,976 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpvcz_ohmy\test_inventory.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+ok
 test_09_database_persistence_across_reopen (test_inventory_crud.TestInventoryCRUDAndDashboard.test_09_database_persistence_across_reopen)
-Confirm records persist across database closing and reopen (simulated restart). ... ok
+Confirm records persist across database closing and reopen (simulated restart). ... 2026-10-29 19:27:18,000 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpz5ztjrrf\test_inventory.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:18,026 [INFO] app.inventory.crud: Created product 'Persistent Item 1' (SKU-P1) with ID 1.
+2026-10-29 19:27:18,046 [INFO] app.inventory.crud: Created product 'Persistent Item 2' (SKU-P2) with ID 2.
+2026-10-29 19:27:18,050 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpz5ztjrrf\test_inventory.db (existed_before=True, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+ok
 test_10_dashboard_statistics_from_actual_records (test_inventory_crud.TestInventoryCRUDAndDashboard.test_10_dashboard_statistics_from_actual_records)
-Confirm dashboard statistics reflect true SQLite aggregate calculations. ... ok
+Confirm dashboard statistics reflect true SQLite aggregate calculations. ... 2026-10-29 19:27:18,072 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp6e41x66k\test_inventory.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:18,365 [INFO] app.inventory.crud: Created product 'Normal Stock Item' (SKU-S1) with ID 1.
+2026-10-29 19:27:18,403 [INFO] app.inventory.crud: Created product 'Low Stock Item' (SKU-S2) with ID 2.
+2026-10-29 19:27:18,424 [INFO] app.inventory.crud: Created product 'Depleted Item' (SKU-S3) with ID 3.
+2026-10-29 19:27:18,444 [INFO] app.inventory.crud: Deleted product ID 1 ('Normal Stock Item').
+ok
 test_11_dashboard_quick_search (test_inventory_crud.TestInventoryCRUDAndDashboard.test_11_dashboard_quick_search)
-Confirm quick-search retrieves matching items across SKU, Name, Category, Supplier. ... ok
+Confirm quick-search retrieves matching items across SKU, Name, Category, Supplier. ... 2026-10-29 19:27:18,467 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpv8n1n4mm\test_inventory.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:18,494 [INFO] app.inventory.crud: Created product 'Oscilloscope 100MHz' (SKU-Q1) with ID 1.
+2026-10-29 19:27:18,513 [INFO] app.inventory.crud: Created product 'Logic Analyzer' (SKU-Q2) with ID 2.
+2026-10-29 19:27:18,533 [INFO] app.inventory.crud: Created product 'Benchtop Power Supply' (SKU-Q3) with ID 3.
+ok
+test_01_product_form_modal_layout_no_scrollable_frame (test_modal_navigation_and_layout.TestModalNavigationAndLayout.test_01_product_form_modal_layout_no_scrollable_frame)
+Confirm ProductFormModal uses compact dimensions and contains NO CTkScrollableFrame. ... 2026-10-29 19:27:18,571 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmptd63b0ct\test_modals.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:18,759 [INFO] app.inventory.crud: Created product 'Laser Measurement Tool' (SKU-2001) with ID 1.
+ok
+test_02_product_form_modal_tab_and_shift_tab_traversal (test_modal_navigation_and_layout.TestModalNavigationAndLayout.test_02_product_form_modal_tab_and_shift_tab_traversal)
+Verify cyclic Tab forward and Shift-Tab backward navigation order across all inputs and buttons. ... 2026-10-29 19:27:18,957 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmppwt56sv6\test_modals.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+invalid command name "1606643478016_revert_withdraw_after_windows_set_titlebar_color"
+    while executing
+"1606643478016_revert_withdraw_after_windows_set_titlebar_color"
+    ("after" script)
+invalid command name "1606764190848focus_set"
+    while executing
+"1606764190848focus_set"
+    ("after" script)
+invalid command name "1606643169664_windows_set_titlebar_icon"
+    while executing
+"1606643169664_windows_set_titlebar_icon"
+    ("after" script)
+invalid command name "1606643471616_windows_set_titlebar_icon"
+    while executing
+"1606643471616_windows_set_titlebar_icon"
+    ("after" script)
+2026-10-29 19:27:19,155 [INFO] app.inventory.crud: Created product 'Laser Measurement Tool' (SKU-2001) with ID 1.
+ok
+test_03_product_form_modal_enter_saves_and_escape_cancels (test_modal_navigation_and_layout.TestModalNavigationAndLayout.test_03_product_form_modal_enter_saves_and_escape_cancels)
+Confirm Enter hotkey submits valid form and Escape hotkey dismisses dialog. ... 2026-10-29 19:27:19,344 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp8vxqpe1s\test_modals.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+invalid command name "1606764187584_revert_withdraw_after_windows_set_titlebar_color"
+    while executing
+"1606764187584_revert_withdraw_after_windows_set_titlebar_color"
+    ("after" script)
+invalid command name "1606643685312focus_set"
+    while executing
+"1606643685312focus_set"
+    ("after" script)
+invalid command name "1606643478144_windows_set_titlebar_icon"
+    while executing
+"1606643478144_windows_set_titlebar_icon"
+    ("after" script)
+invalid command name "1606764183872_windows_set_titlebar_icon"
+    while executing
+"1606764183872_windows_set_titlebar_icon"
+    ("after" script)
+2026-10-29 19:27:19,565 [INFO] app.inventory.crud: Created product 'Laser Measurement Tool' (SKU-2001) with ID 1.
+2026-10-29 19:27:19,705 [INFO] app.inventory.crud: Created product 'Thermal Imaging Camera' (SKU-9090) with ID 2.
+ok
+test_04_product_details_modal_layout_and_hotkeys (test_modal_navigation_and_layout.TestModalNavigationAndLayout.test_04_product_details_modal_layout_and_hotkeys)
+Confirm ProductDetailsModal displays all attributes compactly and closes on Esc / Return. ... 2026-10-29 19:27:19,974 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmptcwgkfuu\test_modals.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+bgerror failed to handle background error.
+    Original error: invalid command name "1606764017536_windows_set_titlebar_icon"
+    Error in bgerror: can't invoke "tk" command: application has been destroyed
+2026-10-29 19:27:20,155 [INFO] app.inventory.crud: Created product 'Laser Measurement Tool' (SKU-2001) with ID 1.
+ok
+test_05_confirmation_modal_keyboard_navigation (test_modal_navigation_and_layout.TestModalNavigationAndLayout.test_05_confirmation_modal_keyboard_navigation)
+Confirm ConfirmationModal supports keyboard navigation and Enter/Escape hotkeys. ... 2026-10-29 19:27:20,381 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp0c9s3g8g\test_modals.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:20,590 [INFO] app.inventory.crud: Created product 'Laser Measurement Tool' (SKU-2001) with ID 1.
+ok
 test_01_search_by_each_supported_field (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_01_search_by_each_supported_field)
-Confirm quick-search retrieves matching items across all four target fields. ... ok
+Confirm quick-search retrieves matching items across all four target fields. ... 2026-10-29 19:27:20,807 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpuodkhr9a\test_q13.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:20,836 [INFO] app.inventory.crud: Created product 'Digital Multimeter 6000' (SKU-101) with ID 1.
+2026-10-29 19:27:20,856 [INFO] app.inventory.crud: Created product 'Oscilloscope Probe 100MHz' (SKU-102) with ID 2.
+2026-10-29 19:27:20,878 [INFO] app.inventory.crud: Created product 'Heavy-Duty Cable Cutter' (SKU-201) with ID 3.
+2026-10-29 19:27:20,900 [INFO] app.inventory.crud: Created product 'Precision Screwdriver Set' (SKU-202) with ID 4.
+2026-10-29 19:27:20,924 [INFO] app.inventory.crud: Created product 'DC Power Supply 30V 5A' (SKU-301) with ID 5.
+2026-10-29 19:27:20,949 [INFO] app.inventory.crud: Created product 'Lithium Battery Pack 12V' (SKU-302) with ID 6.
+ok
 test_02_combined_search_filters (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_02_combined_search_filters)
-Confirm multiple filters combine using AND logic. ... ok
+Confirm multiple filters combine using AND logic. ... 2026-10-29 19:27:20,989 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp3oj6trj3\test_q13.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:21,017 [INFO] app.inventory.crud: Created product 'Digital Multimeter 6000' (SKU-101) with ID 1.
+2026-10-29 19:27:21,037 [INFO] app.inventory.crud: Created product 'Oscilloscope Probe 100MHz' (SKU-102) with ID 2.
+2026-10-29 19:27:21,059 [INFO] app.inventory.crud: Created product 'Heavy-Duty Cable Cutter' (SKU-201) with ID 3.
+2026-10-29 19:27:21,081 [INFO] app.inventory.crud: Created product 'Precision Screwdriver Set' (SKU-202) with ID 4.
+2026-10-29 19:27:21,102 [INFO] app.inventory.crud: Created product 'DC Power Supply 30V 5A' (SKU-301) with ID 5.
+2026-10-29 19:27:21,124 [INFO] app.inventory.crud: Created product 'Lithium Battery Pack 12V' (SKU-302) with ID 6.
+ok
 test_03_empty_results_and_clearing_filters (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_03_empty_results_and_clearing_filters)
-Confirm non-matching filters return empty list and clearing restores full list. ... ok
+Confirm non-matching filters return empty list and clearing restores full list. ... 2026-10-29 19:27:21,159 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmppc9qbb73\test_q13.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:21,189 [INFO] app.inventory.crud: Created product 'Digital Multimeter 6000' (SKU-101) with ID 1.
+2026-10-29 19:27:21,215 [INFO] app.inventory.crud: Created product 'Oscilloscope Probe 100MHz' (SKU-102) with ID 2.
+2026-10-29 19:27:21,241 [INFO] app.inventory.crud: Created product 'Heavy-Duty Cable Cutter' (SKU-201) with ID 3.
+2026-10-29 19:27:21,269 [INFO] app.inventory.crud: Created product 'Precision Screwdriver Set' (SKU-202) with ID 4.
+2026-10-29 19:27:21,296 [INFO] app.inventory.crud: Created product 'DC Power Supply 30V 5A' (SKU-301) with ID 5.
+2026-10-29 19:27:21,322 [INFO] app.inventory.crud: Created product 'Lithium Battery Pack 12V' (SKU-302) with ID 6.
+ok
 test_04_distinct_category_and_supplier_helpers (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_04_distinct_category_and_supplier_helpers)
-Confirm dropdown helpers return correct distinct sorted values. ... ok
+Confirm dropdown helpers return correct distinct sorted values. ... 2026-10-29 19:27:21,357 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpgj31u1gm\test_q13.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:21,392 [INFO] app.inventory.crud: Created product 'Digital Multimeter 6000' (SKU-101) with ID 1.
+2026-10-29 19:27:21,417 [INFO] app.inventory.crud: Created product 'Oscilloscope Probe 100MHz' (SKU-102) with ID 2.
+2026-10-29 19:27:21,456 [INFO] app.inventory.crud: Created product 'Heavy-Duty Cable Cutter' (SKU-201) with ID 3.
+2026-10-29 19:27:21,482 [INFO] app.inventory.crud: Created product 'Precision Screwdriver Set' (SKU-202) with ID 4.
+2026-10-29 19:27:21,506 [INFO] app.inventory.crud: Created product 'DC Power Supply 30V 5A' (SKU-301) with ID 5.
+2026-10-29 19:27:21,533 [INFO] app.inventory.crud: Created product 'Lithium Battery Pack 12V' (SKU-302) with ID 6.
+ok
 test_05_ascending_and_descending_sorting (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_05_ascending_and_descending_sorting)
-Confirm sorting works properly across all whitelisted columns in both directions. ... ok
+Confirm sorting works properly across all whitelisted columns in both directions. ... 2026-10-29 19:27:21,563 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp5g8k3_nv\test_q13.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:21,592 [INFO] app.inventory.crud: Created product 'Digital Multimeter 6000' (SKU-101) with ID 1.
+2026-10-29 19:27:21,617 [INFO] app.inventory.crud: Created product 'Oscilloscope Probe 100MHz' (SKU-102) with ID 2.
+2026-10-29 19:27:21,643 [INFO] app.inventory.crud: Created product 'Heavy-Duty Cable Cutter' (SKU-201) with ID 3.
+2026-10-29 19:27:21,666 [INFO] app.inventory.crud: Created product 'Precision Screwdriver Set' (SKU-202) with ID 4.
+2026-10-29 19:27:21,688 [INFO] app.inventory.crud: Created product 'DC Power Supply 30V 5A' (SKU-301) with ID 5.
+2026-10-29 19:27:21,717 [INFO] app.inventory.crud: Created product 'Lithium Battery Pack 12V' (SKU-302) with ID 6.
+ok
 test_06_invalid_sort_rejection_and_whitelist (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_06_invalid_sort_rejection_and_whitelist)
-Confirm arbitrary/injected sort columns and directions are rejected. ... ok
+Confirm arbitrary/injected sort columns and directions are rejected. ... 2026-10-29 19:27:21,831 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpet_2df7w\test_q13.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:21,860 [INFO] app.inventory.crud: Created product 'Digital Multimeter 6000' (SKU-101) with ID 1.
+2026-10-29 19:27:21,881 [INFO] app.inventory.crud: Created product 'Oscilloscope Probe 100MHz' (SKU-102) with ID 2.
+2026-10-29 19:27:21,911 [INFO] app.inventory.crud: Created product 'Heavy-Duty Cable Cutter' (SKU-201) with ID 3.
+2026-10-29 19:27:21,930 [INFO] app.inventory.crud: Created product 'Precision Screwdriver Set' (SKU-202) with ID 4.
+2026-10-29 19:27:21,951 [INFO] app.inventory.crud: Created product 'DC Power Supply 30V 5A' (SKU-301) with ID 5.
+2026-10-29 19:27:21,976 [INFO] app.inventory.crud: Created product 'Lithium Battery Pack 12V' (SKU-302) with ID 6.
+ok
 test_07_safe_parameterized_queries (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_07_safe_parameterized_queries)
-Confirm search strings containing quotes and SQL metacharacters execute safely. ... ok
+Confirm search strings containing quotes and SQL metacharacters execute safely. ... 2026-10-29 19:27:21,995 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpqkpemej9\test_q13.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:22,024 [INFO] app.inventory.crud: Created product 'Digital Multimeter 6000' (SKU-101) with ID 1.
+2026-10-29 19:27:22,043 [INFO] app.inventory.crud: Created product 'Oscilloscope Probe 100MHz' (SKU-102) with ID 2.
+2026-10-29 19:27:22,065 [INFO] app.inventory.crud: Created product 'Heavy-Duty Cable Cutter' (SKU-201) with ID 3.
+2026-10-29 19:27:22,087 [INFO] app.inventory.crud: Created product 'Precision Screwdriver Set' (SKU-202) with ID 4.
+2026-10-29 19:27:22,108 [INFO] app.inventory.crud: Created product 'DC Power Supply 30V 5A' (SKU-301) with ID 5.
+2026-10-29 19:27:22,129 [INFO] app.inventory.crud: Created product 'Lithium Battery Pack 12V' (SKU-302) with ID 6.
+ok
 test_08_query_plan_index_utilization (test_q13_search_retrieval.TestQ13SearchAndRetrieval.test_08_query_plan_index_utilization)
-Verify SQLite query planner utilizes indexes for supported query patterns. ... ok
+Verify SQLite query planner utilizes indexes for supported query patterns. ... 2026-10-29 19:27:22,172 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpaybg67n2\test_q13.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:22,202 [INFO] app.inventory.crud: Created product 'Digital Multimeter 6000' (SKU-101) with ID 1.
+2026-10-29 19:27:22,223 [INFO] app.inventory.crud: Created product 'Oscilloscope Probe 100MHz' (SKU-102) with ID 2.
+2026-10-29 19:27:22,243 [INFO] app.inventory.crud: Created product 'Heavy-Duty Cable Cutter' (SKU-201) with ID 3.
+2026-10-29 19:27:22,263 [INFO] app.inventory.crud: Created product 'Precision Screwdriver Set' (SKU-202) with ID 4.
+2026-10-29 19:27:22,283 [INFO] app.inventory.crud: Created product 'DC Power Supply 30V 5A' (SKU-301) with ID 5.
+2026-10-29 19:27:22,305 [INFO] app.inventory.crud: Created product 'Lithium Battery Pack 12V' (SKU-302) with ID 6.
+ok
+test_01_view_caching_across_navigation (test_transition_and_view_caching.TestTransitionAndViewCaching.test_01_view_caching_across_navigation)
+Verify that navigating between Dashboard, Inventory, and Settings reuses cached frames. ... 2026-10-29 19:27:22,335 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp1inp0eu5\test_transitions.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:22,436 [INFO] app.authentication.setup: Successfully provisioned initial user 'qualityadmin' (ID: 1)
+2026-10-29 19:27:22,458 [INFO] app.inventory.crud: Created product 'Standard Component #1' (ITEM-001) with ID 1.
+2026-10-29 19:27:22,478 [INFO] app.inventory.crud: Created product 'Standard Component #2' (ITEM-002) with ID 2.
+2026-10-29 19:27:22,498 [INFO] app.inventory.crud: Created product 'Standard Component #3' (ITEM-003) with ID 3.
+2026-10-29 19:27:22,518 [INFO] app.inventory.crud: Created product 'Standard Component #4' (ITEM-004) with ID 4.
+2026-10-29 19:27:22,537 [INFO] app.inventory.crud: Created product 'Standard Component #5' (ITEM-005) with ID 5.
+invalid command name "1606643275392_windows_set_titlebar_icon"
+    while executing
+"1606643275392_windows_set_titlebar_icon"
+    ("after" script)
+invalid command name "1606643274368_windows_set_titlebar_icon"
+    while executing
+"1606643274368_windows_set_titlebar_icon"
+    ("after" script)
+2026-10-29 19:27:22,693 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp1inp0eu5\test_transitions.db (existed_before=True, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:22,702 [INFO] ims: No active session: routing to login.
+ok
+test_02_deep_link_filter_updates_cached_inventory (test_transition_and_view_caching.TestTransitionAndViewCaching.test_02_deep_link_filter_updates_cached_inventory)
+Verify that deep-linking into cached InventoryView updates criteria correctly. ... 2026-10-29 19:27:24,711 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp5zwgc3wl\test_transitions.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:24,805 [INFO] app.authentication.setup: Successfully provisioned initial user 'qualityadmin' (ID: 1)
+2026-10-29 19:27:24,828 [INFO] app.inventory.crud: Created product 'Standard Component #1' (ITEM-001) with ID 1.
+2026-10-29 19:27:24,851 [INFO] app.inventory.crud: Created product 'Standard Component #2' (ITEM-002) with ID 2.
+2026-10-29 19:27:24,874 [INFO] app.inventory.crud: Created product 'Standard Component #3' (ITEM-003) with ID 3.
+2026-10-29 19:27:24,897 [INFO] app.inventory.crud: Created product 'Standard Component #4' (ITEM-004) with ID 4.
+2026-10-29 19:27:24,921 [INFO] app.inventory.crud: Created product 'Standard Component #5' (ITEM-005) with ID 5.
+invalid command name "1606643482240_windows_set_titlebar_icon"
+    while executing
+"1606643482240_windows_set_titlebar_icon"
+    ("after" script)
+2026-10-29 19:27:25,123 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmp5zwgc3wl\test_transitions.db (existed_before=True, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:25,135 [INFO] ims: No active session: routing to login.
+ok
+test_03_modal_dialog_geometry_initialization (test_transition_and_view_caching.TestTransitionAndViewCaching.test_03_modal_dialog_geometry_initialization)
+Verify that modal dialogs set geometry in single pass without error. ... 2026-10-29 19:27:26,463 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpdqbt77ck\test_transitions.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:26,587 [INFO] app.authentication.setup: Successfully provisioned initial user 'qualityadmin' (ID: 1)
+2026-10-29 19:27:26,617 [INFO] app.inventory.crud: Created product 'Standard Component #1' (ITEM-001) with ID 1.
+2026-10-29 19:27:26,645 [INFO] app.inventory.crud: Created product 'Standard Component #2' (ITEM-002) with ID 2.
+2026-10-29 19:27:26,671 [INFO] app.inventory.crud: Created product 'Standard Component #3' (ITEM-003) with ID 3.
+2026-10-29 19:27:26,698 [INFO] app.inventory.crud: Created product 'Standard Component #4' (ITEM-004) with ID 4.
+2026-10-29 19:27:26,724 [INFO] app.inventory.crud: Created product 'Standard Component #5' (ITEM-005) with ID 5.
+invalid command name "1606643470656_windows_set_titlebar_icon"
+    while executing
+"1606643470656_windows_set_titlebar_icon"
+    ("after" script)
+2026-10-29 19:27:26,981 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpdqbt77ck\test_transitions.db (existed_before=True, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:26,992 [INFO] ims: No active session: routing to login.
+2026-10-29 19:27:28,291 [INFO] app.inventory.crud: Created product 'Test' (SKU-TEST) with ID 6.
+ok
+test_04_installer_script_icon_definition (test_transition_and_view_caching.TestTransitionAndViewCaching.test_04_installer_script_icon_definition)
+Verify that installer.iss contains proper app_icon.ico bundling and desktop shortcut icon. ... 2026-10-29 19:27:28,587 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpw84nqvzn\test_transitions.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:28,685 [INFO] app.authentication.setup: Successfully provisioned initial user 'qualityadmin' (ID: 1)
+2026-10-29 19:27:28,707 [INFO] app.inventory.crud: Created product 'Standard Component #1' (ITEM-001) with ID 1.
+2026-10-29 19:27:28,767 [INFO] app.inventory.crud: Created product 'Standard Component #2' (ITEM-002) with ID 2.
+2026-10-29 19:27:28,785 [INFO] app.inventory.crud: Created product 'Standard Component #3' (ITEM-003) with ID 3.
+2026-10-29 19:27:28,803 [INFO] app.inventory.crud: Created product 'Standard Component #4' (ITEM-004) with ID 4.
+2026-10-29 19:27:28,822 [INFO] app.inventory.crud: Created product 'Standard Component #5' (ITEM-005) with ID 5.
+bgerror failed to handle background error.
+    Original error: invalid command name "1606782393472_revert_withdraw_after_windows_set_titlebar_color"
+    Error in bgerror: can't invoke "tk" command: application has been destroyed
+bgerror failed to handle background error.
+    Original error: invalid command name "1606782010368focus_set"
+    Error in bgerror: can't invoke "tk" command: application has been destroyed
+bgerror failed to handle background error.
+    Original error: invalid command name "1606782389632_windows_set_titlebar_icon"
+    Error in bgerror: can't invoke "tk" command: application has been destroyed
+2026-10-29 19:27:29,029 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpw84nqvzn\test_transitions.db (existed_before=True, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:29,042 [INFO] ims: No active session: routing to login.
+ok
+test_05_inventory_row_recycling_eliminates_widget_churn (test_transition_and_view_caching.TestTransitionAndViewCaching.test_05_inventory_row_recycling_eliminates_widget_churn)
+Verify that InventoryView reuses pooled row widgets in-place rather than destroying them. ... 2026-10-29 19:27:29,202 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpdc2psr3k\test_transitions.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:29,349 [INFO] app.authentication.setup: Successfully provisioned initial user 'qualityadmin' (ID: 1)
+2026-10-29 19:27:29,373 [INFO] app.inventory.crud: Created product 'Standard Component #1' (ITEM-001) with ID 1.
+2026-10-29 19:27:29,397 [INFO] app.inventory.crud: Created product 'Standard Component #2' (ITEM-002) with ID 2.
+2026-10-29 19:27:29,419 [INFO] app.inventory.crud: Created product 'Standard Component #3' (ITEM-003) with ID 3.
+2026-10-29 19:27:29,443 [INFO] app.inventory.crud: Created product 'Standard Component #4' (ITEM-004) with ID 4.
+2026-10-29 19:27:29,468 [INFO] app.inventory.crud: Created product 'Standard Component #5' (ITEM-005) with ID 5.
+invalid command name "1606782017024_windows_set_titlebar_icon"
+    while executing
+"1606782017024_windows_set_titlebar_icon"
+    ("after" script)
+2026-10-29 19:27:29,704 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpdc2psr3k\test_transitions.db (existed_before=True, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:29,718 [INFO] ims: No active session: routing to login.
+ok
+test_06_dashboard_row_recycling (test_transition_and_view_caching.TestTransitionAndViewCaching.test_06_dashboard_row_recycling)
+Verify that DashboardFrame reuses pooled row widgets in-place across refreshes. ... 2026-10-29 19:27:31,621 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpi5p7ryz4\test_transitions.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:31,740 [INFO] app.authentication.setup: Successfully provisioned initial user 'qualityadmin' (ID: 1)
+2026-10-29 19:27:31,763 [INFO] app.inventory.crud: Created product 'Standard Component #1' (ITEM-001) with ID 1.
+2026-10-29 19:27:31,783 [INFO] app.inventory.crud: Created product 'Standard Component #2' (ITEM-002) with ID 2.
+2026-10-29 19:27:31,803 [INFO] app.inventory.crud: Created product 'Standard Component #3' (ITEM-003) with ID 3.
+2026-10-29 19:27:31,824 [INFO] app.inventory.crud: Created product 'Standard Component #4' (ITEM-004) with ID 4.
+2026-10-29 19:27:31,847 [INFO] app.inventory.crud: Created product 'Standard Component #5' (ITEM-005) with ID 5.
+invalid command name "1606782388736_windows_set_titlebar_icon"
+    while executing
+"1606782388736_windows_set_titlebar_icon"
+    ("after" script)
+2026-10-29 19:27:32,044 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpi5p7ryz4\test_transitions.db (existed_before=True, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:32,054 [INFO] ims: No active session: routing to login.
+ok
+test_07_status_badge_update_status (test_transition_and_view_caching.TestTransitionAndViewCaching.test_07_status_badge_update_status)
+Verify StatusBadge update_status alters visual presentation without recreating widgets. ... 2026-10-29 19:27:33,077 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmph51xfslp\test_transitions.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:33,184 [INFO] app.authentication.setup: Successfully provisioned initial user 'qualityadmin' (ID: 1)
+2026-10-29 19:27:33,206 [INFO] app.inventory.crud: Created product 'Standard Component #1' (ITEM-001) with ID 1.
+2026-10-29 19:27:33,227 [INFO] app.inventory.crud: Created product 'Standard Component #2' (ITEM-002) with ID 2.
+2026-10-29 19:27:33,247 [INFO] app.inventory.crud: Created product 'Standard Component #3' (ITEM-003) with ID 3.
+2026-10-29 19:27:33,269 [INFO] app.inventory.crud: Created product 'Standard Component #4' (ITEM-004) with ID 4.
+2026-10-29 19:27:33,290 [INFO] app.inventory.crud: Created product 'Standard Component #5' (ITEM-005) with ID 5.
+invalid command name "1606764445888_windows_set_titlebar_icon"
+    while executing
+"1606764445888_windows_set_titlebar_icon"
+    ("after" script)
+2026-10-29 19:27:33,459 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmph51xfslp\test_transitions.db (existed_before=True, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:33,468 [INFO] ims: No active session: routing to login.
+ok
+test_08_search_debouncing_timer_management (test_transition_and_view_caching.TestTransitionAndViewCaching.test_08_search_debouncing_timer_management)
+Verify that rapid search key releases debounce properly using after/after_cancel. ... 2026-10-29 19:27:33,566 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpnpr36eeb\test_transitions.db (existed_before=False, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:33,652 [INFO] app.authentication.setup: Successfully provisioned initial user 'qualityadmin' (ID: 1)
+2026-10-29 19:27:33,670 [INFO] app.inventory.crud: Created product 'Standard Component #1' (ITEM-001) with ID 1.
+2026-10-29 19:27:33,686 [INFO] app.inventory.crud: Created product 'Standard Component #2' (ITEM-002) with ID 2.
+2026-10-29 19:27:33,718 [INFO] app.inventory.crud: Created product 'Standard Component #3' (ITEM-003) with ID 3.
+2026-10-29 19:27:33,735 [INFO] app.inventory.crud: Created product 'Standard Component #4' (ITEM-004) with ID 4.
+2026-10-29 19:27:33,753 [INFO] app.inventory.crud: Created product 'Standard Component #5' (ITEM-005) with ID 5.
+invalid command name "1606764446528_windows_set_titlebar_icon"
+    while executing
+"1606764446528_windows_set_titlebar_icon"
+    ("after" script)
+2026-10-29 19:27:33,894 [INFO] app.database.schema: Database initialized at C:\Users\kamal\AppData\Local\Temp\tmpnpr36eeb\test_transitions.db (existed_before=True, tables=['app_settings', 'products', 'users'], indexes=['idx_products_cat_sup', 'idx_products_category', 'idx_products_name', 'idx_products_product_id', 'idx_products_stock_status', 'idx_products_supplier', 'idx_users_username'])
+2026-10-29 19:27:33,901 [INFO] ims: No active session: routing to login.
+ok
 
 ----------------------------------------------------------------------
-Ran 36 tests in 3.035s
+Ran 59 tests in 26.142s
 
 OK
-======================================================================
-Summary: 36 Passed, 0 Failed, 0 Errored, 0 Skipped (100% Pass Rate)
-======================================================================

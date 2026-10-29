@@ -50,6 +50,7 @@ class DeleteAccountModal(ctk.CTkToplevel):
         db_path: Optional[str] = None,
     ):
         super().__init__(parent)
+        self.withdraw()  # Prevent unstyled flash during layout construction
         self.user_session = user_session
         self.on_confirmed = on_confirmed
         self.db_path = db_path
@@ -72,9 +73,9 @@ class DeleteAccountModal(ctk.CTkToplevel):
         except Exception:
             self.geometry(f"{width}x{height}")
 
-        self.grab_set()
-
         self._build_ui()
+        self.deiconify()
+        self.grab_set()
 
     def _build_ui(self) -> None:
         card = CardFrame(self)

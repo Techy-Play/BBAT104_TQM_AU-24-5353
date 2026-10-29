@@ -334,13 +334,25 @@ class StatusBadge(ctk.CTkFrame):
         )
         self.pack_propagate(False)
 
-        lbl = ctk.CTkLabel(
+        self._lbl = ctk.CTkLabel(
             self,
             text=status,
             font=FONT_SMALL,
             text_color="#ffffff",
         )
-        lbl.pack(expand=True)
+        self._lbl.pack(expand=True)
+
+    def update_status(self, status: str) -> None:
+        """Update badge text and semantic background color in-place without rebuilding."""
+        status_colors = {
+            "In Stock": COLOR_SUCCESS,
+            "Low Stock": COLOR_WARNING,
+            "Out of Stock": COLOR_DANGER,
+        }
+        accent = status_colors.get(status, COLOR_SECONDARY)
+        self.configure(fg_color=accent)
+        if hasattr(self, "_lbl") and self._lbl:
+            self._lbl.configure(text=status)
 
 
 class ConfirmationModal(ctk.CTkToplevel):
@@ -356,6 +368,7 @@ class ConfirmationModal(ctk.CTkToplevel):
         danger: bool = True,
     ):
         super().__init__(parent)
+        self.withdraw()  # Prevent unstyled flash during layout construction
         self.title(title)
         width, height = 440, 230
         self.minsize(400, 200)
@@ -372,8 +385,6 @@ class ConfirmationModal(ctk.CTkToplevel):
             self.geometry(f"{width}x{height}+{pos_x}+{pos_y}")
         except Exception:
             self.geometry(f"{width}x{height}")
-
-        self.grab_set()
 
         card = CardFrame(self)
         card.pack(fill="both", expand=True, padx=16, pady=16)
@@ -420,11 +431,14 @@ class ConfirmationModal(ctk.CTkToplevel):
         btn_cancel.bind("<space>", lambda _e: (self.destroy(), "break")[1])
 
         self._focus_after_id = self.after(50, btn_cancel.focus_set)
+        self.deiconify()
+        self.grab_set()
 
     def destroy(self):
         try:
             if hasattr(self, "_focus_after_id") and self._focus_after_id:
                 self.after_cancel(self._focus_after_id)
+                self._focus_after_id = None
         except Exception:
             pass
         super().destroy()
