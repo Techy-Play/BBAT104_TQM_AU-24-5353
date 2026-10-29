@@ -337,10 +337,12 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         self._navigate_to_inventory(criteria)
 
     def _render_table(self, query: Optional[str] = None) -> None:
-        for child in self.table_body.winfo_children():
-            child.destroy()
-
+        # Detach table frame during update to batch rendering and eliminate redraw flicker
+        self.table_body.pack_forget()
         try:
+            for child in self.table_body.winfo_children():
+                child.destroy()
+
             if query:
                 prods = search_products_quick(query, custom_path=self.db_path)
                 self.table_title.configure(text=f"Quick-Search Results for '{query}' ({len(prods)} found)")
@@ -403,6 +405,8 @@ class DashboardFrame(ctk.CTkScrollableFrame):
 
         except Exception as exc:
             logger.exception("Error rendering dashboard table.")
+        finally:
+            self.table_body.pack(fill="both", expand=True, padx=8, pady=(0, 16))
 
     def _open_add_modal(self) -> None:
         ProductFormModal(

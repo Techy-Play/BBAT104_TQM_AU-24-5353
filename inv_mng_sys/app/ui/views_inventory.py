@@ -422,17 +422,19 @@ class InventoryView(ctk.CTkFrame):
 
     def refresh_products(self, criteria: Optional[FilterCriteria] = None) -> None:
         """Execute filtered query from SQLite and re-render table rows."""
-        self._populate_filter_dropdowns()
-
-        for child in self.table_body.winfo_children():
-            child.destroy()
-
         if criteria is None:
             # Reconstruct from UI values
             self.apply_filters()
             return
 
+        self._populate_filter_dropdowns()
+
+        # Detach table frame during update to batch rendering and eliminate redraw flicker
+        self.table_body.pack_forget()
         try:
+            for child in self.table_body.winfo_children():
+                child.destroy()
+
             self.products = filter_products(criteria, custom_path=self.db_path)
             total_count = len(self.products)
 
@@ -453,14 +455,15 @@ class InventoryView(ctk.CTkFrame):
 
             if not self.products:
                 self._render_empty_state()
-                return
-
-            for idx, prod in enumerate(self.products):
-                self._render_row(prod, is_alt=(idx % 2 == 1))
+            else:
+                for idx, prod in enumerate(self.products):
+                    self._render_row(prod, is_alt=(idx % 2 == 1))
 
         except Exception as exc:
             logger.exception("Error filtering products.")
             self.count_lbl.configure(text="Error querying database.")
+        finally:
+            self.table_body.pack(fill="both", expand=True, padx=4, pady=4)
 
     def _render_empty_state(self) -> None:
         empty_box = ctk.CTkFrame(self.table_body, fg_color="transparent")

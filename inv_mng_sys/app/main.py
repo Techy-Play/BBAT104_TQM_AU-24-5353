@@ -60,6 +60,7 @@ class IMSApplication(ctk.CTk):
         self.db_path = db_path
         self.current_session: Optional[UserSession] = None
         self.current_view: Optional[ctk.CTkFrame] = None
+        self.views: dict[str, ctk.CTkFrame] = {}
         self.nav_bar: Optional[ctk.CTkFrame] = None
         self.content_container: Optional[ctk.CTkFrame] = None
 
@@ -82,10 +83,12 @@ class IMSApplication(ctk.CTk):
             icon_candidates = [
                 PROJECT_DIR / "app_icon.ico",
                 Path(sys.executable).resolve().parent / "app_icon.ico",
+                Path(sys.executable).resolve().parent / "_internal" / "app_icon.ico",
+                Path(getattr(sys, "_MEIPASS", "")) / "app_icon.ico" if hasattr(sys, "_MEIPASS") else None,
                 Path(__file__).resolve().parent.parent / "app_icon.ico",
             ]
             for candidate in icon_candidates:
-                if candidate.is_file():
+                if candidate and Path(candidate).is_file():
                     self.iconbitmap(str(candidate))
                     break
         except Exception:
@@ -96,7 +99,6 @@ class IMSApplication(ctk.CTk):
         self.target_width = width
         self.target_height = height
         self.minsize(min_w, min_h)
-        self.update_idletasks()
         screen_w = self.winfo_screenwidth()
         screen_h = self.winfo_screenheight()
         pos_x = max(0, int((screen_w - width) / 2))
@@ -104,7 +106,15 @@ class IMSApplication(ctk.CTk):
         self.geometry(f"{width}x{height}+{pos_x}+{pos_y}")
 
     def _clear_all(self) -> None:
-        """Clear all active view widgets from the window."""
+        """Clear all active view widgets and cached views from the window."""
+        if hasattr(self, "views") and self.views:
+            for v in list(self.views.values()):
+                try:
+                    if v.winfo_exists():
+                        v.destroy()
+                except Exception:
+                    pass
+            self.views.clear()
         if self.nav_bar is not None:
             self.nav_bar.destroy()
             self.nav_bar = None
@@ -112,7 +122,11 @@ class IMSApplication(ctk.CTk):
             self.content_container.destroy()
             self.content_container = None
         if self.current_view is not None:
-            self.current_view.destroy()
+            try:
+                if self.current_view.winfo_exists():
+                    self.current_view.destroy()
+            except Exception:
+                pass
             self.current_view = None
 
     def _route_initial_view(self) -> None:
@@ -267,52 +281,78 @@ class IMSApplication(ctk.CTk):
 
     def _clear_content_view(self) -> None:
         if self.current_view is not None:
-            self.current_view.destroy()
+            self.current_view.pack_forget()
             self.current_view = None
 
     def show_dashboard_view(self) -> None:
-        """Display the main dashboard (Phase 5)."""
+        """Display the main dashboard (Phase 5) without flickering."""
         self._update_nav_active("dash")
-        self._clear_content_view()
-        self.current_view = DashboardFrame(
-            master=self.content_container,
-            user_session=self.current_session,
-            on_navigate_inventory=self.show_inventory_view,
-            on_navigate_settings=self.show_settings_view,
-            on_logout=self.handle_logout,
-            db_path=self.db_path,
-        )
+        if self.current_view and self.current_view != self.views.get("dash"):
+            self.current_view.pack_forget()
+
+        if "dash" not in self.views or not self.views["dash"].winfo_exists():
+            self.views["dash"] = DashboardFrame(
+                master=self.content_container,
+                user_session=self.current_session,
+                on_navigate_inventory=self.show_inventory_view,
+                on_navigate_settings=self.show_settings_view,
+                on_logout=self.handle_logout,
+                db_path=self.db_path,
+            )
+
+        self.current_view = self.views["dash"]
         self.current_view.pack(fill="both", expand=True)
+        self.views["dash"].refresh_dashboard()
 
     def show_inventory_view(self, initial_criteria: Optional[FilterCriteria] = None) -> None:
         """Display the inventory management workspace (Phase 6), optionally with pre-applied filters."""
         self._update_nav_active("inv")
-        self._clear_content_view()
-        self.current_view = InventoryView(
-            master=self.content_container,
-            on_data_changed=lambda: None,
-            db_path=self.db_path,
-            initial_criteria=initial_criteria,
-        )
+        if self.current_view and self.current_view != self.views.get("inv"):
+            self.current_view.pack_forget()
+
+        if "inv" not in self.views or not self.views["inv"].winfo_exists():
+            self.views["inv"] = InventoryView(
+                master=self.content_container,
+                on_data_changed=self._on_inventory_data_changed,
+                db_path=self.db_path,
+                initial_criteria=initial_criteria,
+            )
+        elif initial_criteria is not None:
+            self.views["inv"].apply_initial_criteria(initial_criteria)
+        else:
+            self.views["inv"].refresh_products()
+
+        self.current_view = self.views["inv"]
         self.current_view.pack(fill="both", expand=True)
+
+    def _on_inventory_data_changed(self) -> None:
+        """Signal dashboard to refresh when inventory data is mutated."""
+        if "dash" in self.views and self.views["dash"].winfo_exists():
+            self.views["dash"].refresh_dashboard()
 
     def show_settings_view(self) -> None:
         """Display application settings."""
         self._update_nav_active("settings")
-        self._clear_content_view()
-        self.current_view = SettingsView(
-            master=self.content_container,
-            user_session=self.current_session,
-            on_profile_updated=self._on_profile_updated,
-            on_account_deleted=self.handle_account_deleted,
-            db_path=self.db_path,
-        )
+        if self.current_view and self.current_view != self.views.get("settings"):
+            self.current_view.pack_forget()
+
+        if "settings" not in self.views or not self.views["settings"].winfo_exists():
+            self.views["settings"] = SettingsView(
+                master=self.content_container,
+                user_session=self.current_session,
+                on_profile_updated=self._on_profile_updated,
+                on_account_deleted=self.handle_account_deleted,
+                db_path=self.db_path,
+            )
+
+        self.current_view = self.views["settings"]
         self.current_view.pack(fill="both", expand=True)
 
     def handle_account_deleted(self) -> None:
         """Handle complete account and database reset by clearing session and routing to setup."""
         logger.info("User account deleted and database reset. Routing to setup wizard.")
         self.current_session = None
+        self._clear_all()
         self.show_setup(reset_notice=True)
 
     def _on_profile_updated(self, updated_session: UserSession) -> None:
@@ -326,12 +366,18 @@ class IMSApplication(ctk.CTk):
             usr = updated_session.full_name
             disp_usr = usr if len(usr) <= 20 else usr[:18] + "…"
             self.user_tag.configure(text=f"👤 {disp_usr}")
+        if "dash" in self.views and self.views["dash"].winfo_exists():
+            self.views["dash"].user_session = updated_session
+            self.views["dash"].refresh_dashboard()
+        if "settings" in self.views and self.views["settings"].winfo_exists():
+            self.views["settings"].user_session = updated_session
 
     def handle_logout(self) -> None:
         """Invalidate session and return to login."""
         if self.current_session:
             logout_user(self.current_session.id, custom_path=self.db_path)
             self.current_session = None
+        self._clear_all()
         self.show_login()
 
     # Backward-compatible method

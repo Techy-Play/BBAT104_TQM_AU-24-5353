@@ -357,19 +357,23 @@ class ConfirmationModal(ctk.CTkToplevel):
     ):
         super().__init__(parent)
         self.title(title)
-        self.geometry("440x230")
+        width, height = 440, 230
         self.minsize(400, 200)
         self.transient(parent)
-        self.grab_set()
 
-        # Center on parent
-        self.update_idletasks()
+        # Center on parent in single atomic geometry calculation
         try:
-            x = parent.winfo_x() + (parent.winfo_width() // 2) - 220
-            y = parent.winfo_y() + (parent.winfo_height() // 2) - 115
-            self.geometry(f"+{max(0, x)}+{max(0, y)}")
+            parent_x = parent.winfo_rootx()
+            parent_y = parent.winfo_rooty()
+            parent_w = parent.winfo_width()
+            parent_h = parent.winfo_height()
+            pos_x = max(0, parent_x + (parent_w - width) // 2)
+            pos_y = max(0, parent_y + (parent_h - height) // 2)
+            self.geometry(f"{width}x{height}+{pos_x}+{pos_y}")
         except Exception:
-            pass
+            self.geometry(f"{width}x{height}")
+
+        self.grab_set()
 
         card = CardFrame(self)
         card.pack(fill="both", expand=True, padx=16, pady=16)

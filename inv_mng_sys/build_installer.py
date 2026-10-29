@@ -72,6 +72,14 @@ def build() -> int:
         return 1
     print(f"SUCCESS: Packaged application built ({dist_exe})")
 
+    # Ensure application icons are placed at the root of the distribution directory
+    dist_dir = PROJECT_DIR / "dist" / "InventoryManagementSystem"
+    shutil.copy2(ico_path, dist_dir / "app_icon.ico")
+    png_path = PROJECT_DIR / "app_icon.png"
+    if png_path.is_file():
+        shutil.copy2(png_path, dist_dir / "app_icon.png")
+    print(f"Verified application icons copied to {dist_dir}")
+
     # Step 3: Inno Setup compilation
     print("[3/3] Compiling installer with Inno Setup...")
     iscc_path = find_iscc()
