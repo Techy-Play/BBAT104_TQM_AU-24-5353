@@ -29,6 +29,7 @@ from app.inventory.crud import (
     get_inventory_statistics,
     get_product_by_id,
     get_product_by_product_id,
+    get_shop_owner_analysis,
     update_product,
     validate_product_data,
 )
@@ -320,6 +321,135 @@ class TestInventoryCRUDAndDashboard(unittest.TestCase):
         # No match
         res_empty = search_products_quick("NonExistentItem999", custom_path=self.db_path)
         self.assertEqual(len(res_empty), 0)
+
+    def test_12_custom_low_stock_threshold_and_automation(self) -> None:
+        """Confirm manual entry of custom low stock threshold per product and status re-calculation."""
+        # 1. Product with custom threshold = 25 (qty 20 is Low Stock because 20 <= 25)
+        p1 = add_product(
+            product_id="SKU-TH1",
+            name="Heavy Machinery Belt",
+            category="Machinery",
+            supplier="BeltPro",
+            quantity=20,
+            price=45.0,
+            low_stock_threshold=25,
+            custom_path=self.db_path,
+        )
+        self.assertEqual(p1.low_stock_threshold, 25)
+        self.assertEqual(p1.stock_status, "Low Stock")
+
+        # 2. Product with custom threshold = 5 (qty 8 is In Stock because 8 > 5, unlike standard 10)
+        p2 = add_product(
+            product_id="SKU-TH2",
+            name="Precision Sensor",
+            category="Sensors",
+            supplier="SensorTech",
+            quantity=8,
+            price=120.0,
+            low_stock_threshold=5,
+            custom_path=self.db_path,
+        )
+        self.assertEqual(p2.low_stock_threshold, 5)
+        self.assertEqual(p2.stock_status, "In Stock")
+
+        # 3. Update custom threshold: raising threshold to 15 marks p2 as Low Stock (8 <= 15)
+        p2_updated = update_product(
+            item_id=p2.id,
+            product_id=p2.product_id,
+            name=p2.name,
+            category=p2.category,
+            supplier=p2.supplier,
+            quantity=p2.quantity,
+            price=p2.price,
+            stock_status=None,  # Auto-recalculate
+            low_stock_threshold=15,
+            custom_path=self.db_path,
+        )
+        self.assertEqual(p2_updated.low_stock_threshold, 15)
+        self.assertEqual(p2_updated.stock_status, "Low Stock")
+
+        # 4. Reject invalid threshold (negative numbers or letters)
+        with self.assertRaises(ValueError):
+            add_product(
+                product_id="SKU-ERR",
+                name="Error Item",
+                category="General",
+                supplier="None",
+                quantity=10,
+                price=5.0,
+                low_stock_threshold=-5,
+                custom_path=self.db_path,
+            )
+
+        with self.assertRaises(ValueError):
+            add_product(
+                product_id="SKU-ERR2",
+                name="Error Item 2",
+                category="General",
+                supplier="None",
+                quantity=10,
+                price=5.0,
+                low_stock_threshold="invalid",
+                custom_path=self.db_path,
+            )
+
+    def test_13_shop_owner_inventory_analysis_metrics(self) -> None:
+        """Confirm shop owner inventory analysis computes capital valuation, health, categories, and restock alerts."""
+        # Clean state
+        empty_analysis = get_shop_owner_analysis(custom_path=self.db_path)
+        self.assertEqual(empty_analysis["total_skus"], 0)
+        self.assertEqual(empty_analysis["total_value"], 0.0)
+        self.assertEqual(len(empty_analysis["categories"]), 0)
+        self.assertEqual(len(empty_analysis["restock_alerts"]), 0)
+
+        # Seed realistic shop inventory
+        # Category A: Electronics (val: 20 * 100 + 4 * 50 = 2200)
+        add_product("SKU-E1", "Laptop Charger", "Electronics", "Acme", 20, 100.0, low_stock_threshold=10, custom_path=self.db_path)
+        add_product("SKU-E2", "USB Hub", "Electronics", "Acme", 4, 50.0, low_stock_threshold=10, custom_path=self.db_path)  # Low stock
+
+        # Category B: Tools (val: 5 * 200 = 1000)
+        add_product("SKU-T1", "Impact Driver", "Tools", "Bosch", 5, 200.0, low_stock_threshold=10, custom_path=self.db_path)  # Low stock
+
+        # Category C: Safety (val: 0 * 25 = 0)
+        add_product("SKU-S1", "Safety Helmet", "Safety", "SafeCo", 0, 25.0, low_stock_threshold=5, custom_path=self.db_path)  # Out of stock
+
+        analysis = get_shop_owner_analysis(custom_path=self.db_path)
+
+        # Summary KPIs
+        self.assertEqual(analysis["total_skus"], 4)
+        self.assertEqual(analysis["total_units"], 29)  # 20 + 4 + 5 + 0
+        self.assertEqual(analysis["total_value"], 3200.0)  # 2200 + 1000 + 0
+        self.assertEqual(analysis["avg_sku_value"], 800.0)  # 3200 / 4
+        self.assertAlmostEqual(analysis["avg_unit_price"], round(3200 / 29, 2))
+
+        # Health Breakdown
+        self.assertEqual(analysis["in_stock_count"], 1)  # Laptop Charger
+        self.assertEqual(analysis["low_stock_count"], 2)  # USB Hub, Impact Driver
+        self.assertEqual(analysis["out_of_stock_count"], 1)  # Safety Helmet
+        self.assertEqual(analysis["in_stock_pct"], 25.0)
+        self.assertEqual(analysis["low_stock_pct"], 50.0)
+        self.assertEqual(analysis["out_stock_pct"], 25.0)
+
+        # Category Breakdown: Electronics (2200) > Tools (1000) > Safety (0)
+        cats = analysis["categories"]
+        self.assertEqual(len(cats), 3)
+        self.assertEqual(cats[0]["category"], "Electronics")
+        self.assertEqual(cats[0]["value"], 2200.0)
+        self.assertAlmostEqual(cats[0]["percent_share"], round(2200 / 3200 * 100, 1))
+
+        self.assertEqual(cats[1]["category"], "Tools")
+        self.assertEqual(cats[1]["value"], 1000.0)
+
+        # Restock Priority: Out of stock (Safety Helmet) first, then lowest quantity
+        alerts = analysis["restock_alerts"]
+        self.assertEqual(len(alerts), 3)
+        self.assertEqual(alerts[0]["product_id"], "SKU-S1")  # qty=0, critical
+        self.assertEqual(alerts[0]["urgency"], "CRITICAL")
+        self.assertEqual(alerts[0]["shortage"], 5)  # threshold=5, qty=0 -> deficit 5
+
+        # Check shortage on low stock items
+        usb_alert = next(a for a in alerts if a["product_id"] == "SKU-E2")
+        self.assertEqual(usb_alert["shortage"], 6)  # threshold=10, qty=4 -> deficit 6
 
 
 if __name__ == "__main__":

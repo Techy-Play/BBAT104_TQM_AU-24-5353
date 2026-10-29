@@ -20,6 +20,8 @@ from app.inventory.crud import (
     Product,
     get_all_products,
     get_inventory_statistics,
+    get_product_by_id,
+    get_shop_owner_analysis,
 )
 from app.inventory.filters import FilterCriteria
 from app.inventory.search import search_products_quick
@@ -45,6 +47,7 @@ from app.ui.theme import (
     COLOR_TEXT_PRIMARY,
     COLOR_WARNING,
     FONT_BODY,
+    FONT_BODY_BOLD,
     FONT_BUTTON,
     FONT_HEADING,
     FONT_SECTION,
@@ -55,6 +58,108 @@ from app.ui.theme import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class CategoryAnalysisRow(ctk.CTkFrame):
+    """Row displaying category inventory capital allocation and percentage share."""
+
+    def __init__(self, master, on_filter: Callable[[str], None]):
+        super().__init__(master, fg_color=COLOR_SECONDARY, corner_radius=6, height=38)
+        self.pack_propagate(False)
+        self._on_filter = on_filter
+        self.category_name = ""
+
+        self.name_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY_BOLD, width=120, anchor="w", text_color=COLOR_TEXT_PRIMARY)
+        self.name_lbl.pack(side="left", padx=(10, 4))
+
+        self.units_lbl = ctk.CTkLabel(self, text="", font=FONT_SMALL, width=80, anchor="w", text_color=COLOR_TEXT_MUTED)
+        self.units_lbl.pack(side="left", padx=4)
+
+        self.val_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY_BOLD, width=90, anchor="e", text_color=COLOR_SUCCESS)
+        self.val_lbl.pack(side="left", padx=4)
+
+        self.pct_lbl = ctk.CTkLabel(self, text="", font=FONT_SMALL, width=50, anchor="e", text_color=COLOR_TEXT_MUTED)
+        self.pct_lbl.pack(side="left", padx=4)
+
+        self.progress = ctk.CTkProgressBar(self, width=80, height=8, progress_color=COLOR_PRIMARY)
+        self.progress.pack(side="left", padx=(6, 8))
+
+        self.btn_filter = SecondaryButton(self, text="Filter ↗", width=62, height=26, command=self._handle_click)
+        self.btn_filter.pack(side="right", padx=(4, 8))
+
+    def _handle_click(self) -> None:
+        if self.category_name and self._on_filter:
+            self._on_filter(self.category_name)
+
+    def update_data(self, cat_data: dict) -> None:
+        self.category_name = cat_data["category"]
+        self.name_lbl.configure(text=cat_data["category"])
+        self.units_lbl.configure(text=f"{cat_data['units']} units")
+        self.val_lbl.configure(text=f"${cat_data['value']:,.2f}")
+        self.pct_lbl.configure(text=f"{cat_data['percent_share']}%")
+        self.progress.set(min(1.0, max(0.0, cat_data["percent_share"] / 100.0)))
+
+
+class RestockUrgencyRow(ctk.CTkFrame):
+    """Row displaying actionable replenishment alert for items at or below custom threshold."""
+
+    def __init__(self, master, on_view: Callable[[int], None], on_open: Callable[[str], None]):
+        super().__init__(master, fg_color=COLOR_SECONDARY, corner_radius=6, height=38)
+        self.pack_propagate(False)
+        self._on_view = on_view
+        self._on_open = on_open
+        self.item_id: Optional[int] = None
+        self.sku: str = ""
+
+        self.badge_urgency = ctk.CTkLabel(
+            self,
+            text="",
+            font=FONT_SMALL,
+            corner_radius=4,
+            width=50,
+            text_color="#ffffff",
+            fg_color=COLOR_DANGER,
+        )
+        self.badge_urgency.pack(side="left", padx=(8, 4), pady=6)
+
+        self.name_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY_BOLD, width=160, anchor="w", text_color=COLOR_TEXT_PRIMARY)
+        self.name_lbl.pack(side="left", padx=4)
+
+        self.qty_lbl = ctk.CTkLabel(self, text="", font=FONT_SMALL, width=120, anchor="w", text_color=COLOR_TEXT_MUTED)
+        self.qty_lbl.pack(side="left", padx=4)
+
+        self.deficit_lbl = ctk.CTkLabel(self, text="", font=FONT_BODY_BOLD, width=70, anchor="e", text_color=COLOR_WARNING)
+        self.deficit_lbl.pack(side="left", padx=4)
+
+        self.btn_open = PrimaryButton(self, text="Open ↗", width=62, height=26, command=self._handle_open)
+        self.btn_open.pack(side="right", padx=(4, 8))
+
+        self.btn_view = SecondaryButton(self, text="View", width=52, height=26, command=self._handle_view)
+        self.btn_view.pack(side="right", padx=(0, 4))
+
+    def _handle_view(self) -> None:
+        if self.item_id and self._on_view:
+            self._on_view(self.item_id)
+
+    def _handle_open(self) -> None:
+        if self.sku and self._on_open:
+            self._on_open(self.sku)
+
+    def update_data(self, item_data: dict) -> None:
+        self.item_id = item_data["id"]
+        self.sku = item_data["product_id"]
+        urgency = item_data.get("urgency", "WARNING")
+        if urgency == "CRITICAL":
+            self.badge_urgency.configure(text="OUT", fg_color=COLOR_DANGER)
+        elif urgency == "HIGH":
+            self.badge_urgency.configure(text="CRIT", fg_color=COLOR_WARNING)
+        else:
+            self.badge_urgency.configure(text="LOW", fg_color=COLOR_INFO)
+
+        self.name_lbl.configure(text=f"{item_data['name']} ({item_data['product_id']})")
+        self.qty_lbl.configure(text=f"Qty: {item_data['quantity']} / Thresh: {item_data['threshold']}")
+        shortage = item_data.get("shortage", 0)
+        self.deficit_lbl.configure(text=f"-{shortage} units" if shortage > 0 else "0 units")
 
 
 class DashboardTableRow(ctk.CTkFrame):
@@ -171,6 +276,8 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         self.on_logout = on_logout
         self.db_path = db_path
         self._row_pool: list[DashboardTableRow] = []
+        self._category_row_pool: list[CategoryAnalysisRow] = []
+        self._restock_row_pool: list[RestockUrgencyRow] = []
         self._empty_box: Optional[ctk.CTkFrame] = None
         self._quick_search_after_id: Optional[str] = None
 
@@ -239,10 +346,10 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         )
         btn_view_inv.pack(side="left")
 
-        # 4 Key Metric Stat Cards with Interactive Deep Links
+        # 5 Key Metric Stat Cards with Interactive Deep Links
         stats_grid = ctk.CTkFrame(content, fg_color="transparent")
         stats_grid.pack(fill="x", pady=(0, 16))
-        stats_grid.grid_columnconfigure((0, 1, 2, 3), weight=1)
+        stats_grid.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
 
         self.card_total = StatCard(
             stats_grid,
@@ -253,7 +360,7 @@ class DashboardFrame(ctk.CTkScrollableFrame):
             link_text="View All Products ↗",
             on_click=lambda: self._navigate_to_inventory(None),
         )
-        self.card_total.grid(row=0, column=0, sticky="ew", padx=(0, 6))
+        self.card_total.grid(row=0, column=0, sticky="ew", padx=(0, 4))
 
         self.card_qty = StatCard(
             stats_grid,
@@ -266,7 +373,20 @@ class DashboardFrame(ctk.CTkScrollableFrame):
                 FilterCriteria(sort_by="Quantity", sort_direction="DESC")
             ),
         )
-        self.card_qty.grid(row=0, column=1, sticky="ew", padx=6)
+        self.card_qty.grid(row=0, column=1, sticky="ew", padx=4)
+
+        self.card_val = StatCard(
+            stats_grid,
+            title="Total Stock Value",
+            value="$0.00",
+            icon="💰",
+            accent_color=COLOR_SUCCESS,
+            link_text="Sort by Price ↗",
+            on_click=lambda: self._navigate_to_inventory(
+                FilterCriteria(sort_by="Price", sort_direction="DESC")
+            ),
+        )
+        self.card_val.grid(row=0, column=2, sticky="ew", padx=4)
 
         self.card_low = StatCard(
             stats_grid,
@@ -279,7 +399,7 @@ class DashboardFrame(ctk.CTkScrollableFrame):
                 FilterCriteria(stock_status="Low Stock")
             ),
         )
-        self.card_low.grid(row=0, column=2, sticky="ew", padx=6)
+        self.card_low.grid(row=0, column=3, sticky="ew", padx=4)
 
         self.card_out = StatCard(
             stats_grid,
@@ -292,7 +412,137 @@ class DashboardFrame(ctk.CTkScrollableFrame):
                 FilterCriteria(stock_status="Out of Stock")
             ),
         )
-        self.card_out.grid(row=0, column=3, sticky="ew", padx=(6, 0))
+        self.card_out.grid(row=0, column=4, sticky="ew", padx=(4, 0))
+
+        # Store Inventory & Capital Analytics Card (Shop Owner Dashboard)
+        self.analysis_card = CardFrame(content)
+        self.analysis_card.pack(fill="x", pady=(0, 16))
+
+        analysis_header = ctk.CTkFrame(self.analysis_card, fg_color="transparent")
+        analysis_header.pack(fill="x", padx=16, pady=(16, 8))
+
+        analysis_title_box = ctk.CTkFrame(analysis_header, fg_color="transparent")
+        analysis_title_box.pack(side="left")
+
+        ctk.CTkLabel(
+            analysis_title_box,
+            text="📊 Store Inventory & Capital Analysis",
+            font=FONT_SECTION,
+            text_color=COLOR_TEXT_PRIMARY,
+        ).pack(anchor="w")
+
+        ctk.CTkLabel(
+            analysis_title_box,
+            text="Real-time capital distribution, category investment share, and replenishment urgency",
+            font=FONT_SMALL,
+            text_color=COLOR_TEXT_MUTED,
+        ).pack(anchor="w")
+
+        self.analysis_kpi_lbl = ctk.CTkLabel(
+            analysis_header,
+            text="Avg SKU: $0.00  •  Avg Unit Price: $0.00",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_TEXT_PRIMARY,
+        )
+        self.analysis_kpi_lbl.pack(side="right")
+
+        # Two-Column Analysis Container
+        analysis_cols = ctk.CTkFrame(self.analysis_card, fg_color="transparent")
+        analysis_cols.pack(fill="x", padx=16, pady=(0, 16))
+        analysis_cols.grid_columnconfigure((0, 1), weight=1, uniform="analysis_cols")
+
+        # LEFT COLUMN: Stock Health & Category Capital Breakdown
+        left_col = ctk.CTkFrame(analysis_cols, fg_color="transparent")
+        left_col.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+
+        # Stock Health Pills
+        ctk.CTkLabel(
+            left_col,
+            text="Stock Health & Portfolio Distribution",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_TEXT_PRIMARY,
+            anchor="w",
+        ).pack(fill="x", pady=(0, 6))
+
+        health_box = ctk.CTkFrame(left_col, fg_color=COLOR_SECONDARY, corner_radius=6)
+        health_box.pack(fill="x", pady=(0, 12))
+
+        health_row = ctk.CTkFrame(health_box, fg_color="transparent")
+        health_row.pack(fill="x", padx=12, pady=10)
+
+        self.health_in_lbl = ctk.CTkLabel(
+            health_row,
+            text="🟢 In Stock: 0 (0%)",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_SUCCESS,
+            anchor="w",
+        )
+        self.health_in_lbl.pack(side="left", expand=True)
+
+        self.health_low_lbl = ctk.CTkLabel(
+            health_row,
+            text="🟠 Low Stock: 0 (0%)",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_WARNING,
+            anchor="w",
+        )
+        self.health_low_lbl.pack(side="left", expand=True)
+
+        self.health_out_lbl = ctk.CTkLabel(
+            health_row,
+            text="🔴 Out of Stock: 0 (0%)",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_DANGER,
+            anchor="w",
+        )
+        self.health_out_lbl.pack(side="left", expand=True)
+
+        # Category Allocation Title & Container
+        cat_head_row = ctk.CTkFrame(left_col, fg_color="transparent")
+        cat_head_row.pack(fill="x", pady=(0, 6))
+
+        ctk.CTkLabel(
+            cat_head_row,
+            text="Top Categories by Capital Allocation",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_TEXT_PRIMARY,
+            anchor="w",
+        ).pack(side="left")
+
+        self.category_container = ctk.CTkFrame(left_col, fg_color="transparent")
+        self.category_container.pack(fill="x")
+
+        self._category_empty_lbl = ctk.CTkLabel(
+            self.category_container,
+            text="No category data available.",
+            font=FONT_SMALL,
+            text_color=COLOR_TEXT_MUTED,
+        )
+
+        # RIGHT COLUMN: Restock Priority & Replenishment Alerts
+        right_col = ctk.CTkFrame(analysis_cols, fg_color="transparent")
+        right_col.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
+
+        urgency_head_row = ctk.CTkFrame(right_col, fg_color="transparent")
+        urgency_head_row.pack(fill="x", pady=(0, 6))
+
+        ctk.CTkLabel(
+            urgency_head_row,
+            text="⚠️ Restock Priority (Custom Threshold Alerts)",
+            font=FONT_BODY_BOLD,
+            text_color=COLOR_TEXT_PRIMARY,
+            anchor="w",
+        ).pack(side="left")
+
+        self.restock_container = ctk.CTkFrame(right_col, fg_color="transparent")
+        self.restock_container.pack(fill="x")
+
+        self._restock_empty_lbl = ctk.CTkLabel(
+            self.restock_container,
+            text="✅ All product lines healthy! No items at or below threshold.",
+            font=FONT_SMALL,
+            text_color=COLOR_SUCCESS,
+        )
 
         # Quick Search Bar
         search_card = CardFrame(content)
@@ -396,18 +646,110 @@ class DashboardFrame(ctk.CTkScrollableFrame):
             lbl.pack(side="left", padx=4)
 
     def refresh_dashboard(self) -> None:
-        """Fetch real statistics and refresh the overview list."""
+        """Fetch real statistics and refresh the overview list and analysis cards."""
         try:
             stats = get_inventory_statistics(custom_path=self.db_path)
             self.card_total.update_value(f"{stats['total_products']:,}")
             self.card_qty.update_value(f"{stats['total_quantity']:,}")
+            self.card_val.update_value(f"${stats['total_value']:,.2f}")
             self.card_low.update_value(f"{stats['low_stock_count']:,}")
             self.card_out.update_value(f"{stats['out_of_stock_count']:,}")
+
+            # Update Shop Owner Analysis
+            analysis = get_shop_owner_analysis(custom_path=self.db_path)
+            self._update_analysis_section(analysis)
 
             query = self.quick_search_entry.get().strip()
             self._render_table(query if query else None)
         except Exception as exc:
             logger.exception("Error updating dashboard statistics.")
+
+    def _update_analysis_section(self, analysis: dict) -> None:
+        """Update shop owner analysis cards with fresh statistics without UI flicker."""
+        try:
+            # Header KPIs
+            self.analysis_kpi_lbl.configure(
+                text=f"Avg SKU: ${analysis['avg_sku_value']:,.2f}  •  Avg Unit: ${analysis['avg_unit_price']:,.2f}"
+            )
+
+            # Stock Health
+            self.health_in_lbl.configure(
+                text=f"🟢 In Stock: {analysis['in_stock_count']:,} ({analysis['in_stock_pct']}%)"
+            )
+            self.health_low_lbl.configure(
+                text=f"🟠 Low Stock: {analysis['low_stock_count']:,} ({analysis['low_stock_pct']}%)"
+            )
+            self.health_out_lbl.configure(
+                text=f"🔴 Out of Stock: {analysis['out_of_stock_count']:,} ({analysis['out_stock_pct']}%)"
+            )
+
+            # Categories (Top 5)
+            categories = analysis.get("categories", [])[:5]
+            if not categories:
+                for row in self._category_row_pool:
+                    row.pack_forget()
+                if self._category_empty_lbl.winfo_manager() != "pack":
+                    self._category_empty_lbl.pack(fill="x", pady=10)
+            else:
+                if self._category_empty_lbl.winfo_manager() == "pack":
+                    self._category_empty_lbl.pack_forget()
+                for idx, cat_data in enumerate(categories):
+                    if idx < len(self._category_row_pool):
+                        row = self._category_row_pool[idx]
+                        row.update_data(cat_data)
+                        if row.winfo_manager() != "pack":
+                            row.pack(fill="x", pady=2)
+                    else:
+                        row = CategoryAnalysisRow(
+                            master=self.category_container,
+                            on_filter=lambda cat: self._navigate_to_inventory(FilterCriteria(category=cat)),
+                        )
+                        row.update_data(cat_data)
+                        row.pack(fill="x", pady=2)
+                        self._category_row_pool.append(row)
+
+                # Unmap extra rows
+                for idx in range(len(categories), len(self._category_row_pool)):
+                    self._category_row_pool[idx].pack_forget()
+
+            # Restock Urgency (Top 5)
+            restock_items = analysis.get("restock_alerts", [])[:5]
+            if not restock_items:
+                for row in self._restock_row_pool:
+                    row.pack_forget()
+                if self._restock_empty_lbl.winfo_manager() != "pack":
+                    self._restock_empty_lbl.pack(fill="x", pady=10)
+            else:
+                if self._restock_empty_lbl.winfo_manager() == "pack":
+                    self._restock_empty_lbl.pack_forget()
+                for idx, item_data in enumerate(restock_items):
+                    if idx < len(self._restock_row_pool):
+                        row = self._restock_row_pool[idx]
+                        row.update_data(item_data)
+                        if row.winfo_manager() != "pack":
+                            row.pack(fill="x", pady=2)
+                    else:
+                        row = RestockUrgencyRow(
+                            master=self.restock_container,
+                            on_view=self._open_product_details_by_id,
+                            on_open=lambda sku: self._navigate_to_inventory(FilterCriteria(search_query=sku)),
+                        )
+                        row.update_data(item_data)
+                        row.pack(fill="x", pady=2)
+                        self._restock_row_pool.append(row)
+
+                # Unmap extra rows
+                for idx in range(len(restock_items), len(self._restock_row_pool)):
+                    self._restock_row_pool[idx].pack_forget()
+
+        except Exception as exc:
+            logger.exception("Error updating shop owner analysis section.")
+
+    def _open_product_details_by_id(self, item_id: int) -> None:
+        """Open ProductDetailsModal for a given product ID."""
+        prod = get_product_by_id(item_id, custom_path=self.db_path)
+        if prod:
+            ProductDetailsModal(parent=self.winfo_toplevel(), product=prod)
 
     def _on_quick_search_key_release(self, event=None) -> None:
         """Debounced live search on key release (200ms) to avoid keystroke flooding."""

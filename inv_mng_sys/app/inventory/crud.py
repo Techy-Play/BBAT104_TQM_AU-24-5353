@@ -46,6 +46,7 @@ class Product:
     stock_status: str
     created_at: str
     updated_at: str
+    low_stock_threshold: int = DEFAULT_LOW_STOCK_THRESHOLD
 
     @property
     def total_value(self) -> float:
@@ -55,6 +56,13 @@ class Product:
     @classmethod
     def from_row(cls, row: sqlite3.Row) -> Product:
         """Construct a Product instance from a SQLite row."""
+        threshold = DEFAULT_LOW_STOCK_THRESHOLD
+        try:
+            if "low_stock_threshold" in row.keys() and row["low_stock_threshold"] is not None:
+                threshold = int(row["low_stock_threshold"])
+        except Exception:
+            threshold = DEFAULT_LOW_STOCK_THRESHOLD
+
         return cls(
             id=row["id"],
             product_id=row["product_id"],
@@ -66,6 +74,7 @@ class Product:
             stock_status=row["stock_status"],
             created_at=str(row["created_at"]),
             updated_at=str(row["updated_at"]),
+            low_stock_threshold=threshold,
         )
 
 
@@ -94,6 +103,7 @@ def validate_product_data(
     quantity: Union[int, str],
     price: Union[float, str],
     stock_status: Optional[str] = None,
+    low_stock_threshold: Union[int, str] = DEFAULT_LOW_STOCK_THRESHOLD,
     exclude_id: Optional[int] = None,
     custom_path: Optional[Union[str, Path]] = None,
 ) -> Dict[str, Any]:
@@ -146,8 +156,16 @@ def validate_product_data(
     if price_flt < 0.0:
         raise ValueError("Price cannot be negative.")
 
+    # Validate Low Stock Threshold
+    try:
+        threshold_int = int(low_stock_threshold)
+    except (ValueError, TypeError):
+        raise ValueError("Low stock threshold must be a valid whole number.")
+    if threshold_int < 0:
+        raise ValueError("Low stock threshold cannot be negative.")
+
     # Validate Stock Status
-    status_str = determine_stock_status(qty_int, explicit_status=stock_status)
+    status_str = determine_stock_status(qty_int, explicit_status=stock_status, threshold=threshold_int)
 
     # Check Product ID Uniqueness
     if exclude_id is not None:
@@ -168,6 +186,7 @@ def validate_product_data(
         "quantity": qty_int,
         "price": price_flt,
         "stock_status": status_str,
+        "low_stock_threshold": threshold_int,
     }
 
 
@@ -179,6 +198,7 @@ def add_product(
     quantity: Union[int, str],
     price: Union[float, str],
     stock_status: Optional[str] = None,
+    low_stock_threshold: Union[int, str] = DEFAULT_LOW_STOCK_THRESHOLD,
     custom_path: Optional[Union[str, Path]] = None,
 ) -> Product:
     """Create and persist a new inventory product record."""
@@ -190,12 +210,13 @@ def add_product(
         quantity=quantity,
         price=price,
         stock_status=stock_status,
+        low_stock_threshold=low_stock_threshold,
         custom_path=custom_path,
     )
 
     sql = """
-    INSERT INTO products (product_id, name, category, supplier, quantity, price, stock_status)
-    VALUES (?, ?, ?, ?, ?, ?, ?);
+    INSERT INTO products (product_id, name, category, supplier, quantity, price, stock_status, low_stock_threshold)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?);
     """
     row_id = execute_insert(
         sql,
@@ -207,6 +228,7 @@ def add_product(
             validated["quantity"],
             validated["price"],
             validated["stock_status"],
+            validated["low_stock_threshold"],
         ),
         custom_path=custom_path,
     )
@@ -271,6 +293,7 @@ def update_product(
     quantity: Union[int, str],
     price: Union[float, str],
     stock_status: Optional[str] = None,
+    low_stock_threshold: Union[int, str] = DEFAULT_LOW_STOCK_THRESHOLD,
     custom_path: Optional[Union[str, Path]] = None,
 ) -> Product:
     """Update an existing product record."""
@@ -286,6 +309,7 @@ def update_product(
         quantity=quantity,
         price=price,
         stock_status=stock_status,
+        low_stock_threshold=low_stock_threshold,
         exclude_id=item_id,
         custom_path=custom_path,
     )
@@ -299,6 +323,7 @@ def update_product(
         quantity = ?,
         price = ?,
         stock_status = ?,
+        low_stock_threshold = ?,
         updated_at = CURRENT_TIMESTAMP
     WHERE id = ?;
     """
@@ -312,6 +337,7 @@ def update_product(
             validated["quantity"],
             validated["price"],
             validated["stock_status"],
+            validated["low_stock_threshold"],
             item_id,
         ),
         custom_path=custom_path,
@@ -380,4 +406,102 @@ def get_inventory_statistics(
         "low_stock_count": int(row["low_stock_count"] or 0),
         "out_of_stock_count": int(row["out_of_stock_count"] or 0),
         "total_categories": int(row["total_categories"] or 0),
+    }
+
+
+def get_shop_owner_analysis(
+    custom_path: Optional[Union[str, Path]] = None,
+) -> Dict[str, Any]:
+    """Compute rich inventory and capital analytics for the shop owner dashboard.
+    
+    Returns:
+        Dict containing:
+        - summary: total items, total units, total valuation, average SKU value, average unit price
+        - health: in-stock, low-stock, out-of-stock counts and percentages
+        - categories: breakdown of capital allocation and item counts across categories
+        - restock_alerts: prioritized list of products at or below their custom low-stock threshold
+    """
+    stats = get_inventory_statistics(custom_path=custom_path)
+    total_skus = stats["total_products"]
+    total_units = stats["total_quantity"]
+    total_val = stats["total_value"]
+    low_count = stats["low_stock_count"]
+    out_count = stats["out_of_stock_count"]
+    in_stock_count = max(0, total_skus - low_count - out_count)
+
+    in_stock_pct = round((in_stock_count / total_skus * 100), 1) if total_skus > 0 else 0.0
+    low_stock_pct = round((low_count / total_skus * 100), 1) if total_skus > 0 else 0.0
+    out_stock_pct = round((out_count / total_skus * 100), 1) if total_skus > 0 else 0.0
+    avg_sku_value = round(total_val / total_skus, 2) if total_skus > 0 else 0.0
+    avg_unit_price = round(total_val / total_units, 2) if total_units > 0 else 0.0
+
+    # Category Capital Distribution
+    cat_sql = """
+    SELECT
+        category,
+        COUNT(*) AS sku_count,
+        COALESCE(SUM(quantity), 0) AS units,
+        COALESCE(SUM(quantity * price), 0.0) AS category_value
+    FROM products
+    GROUP BY category
+    ORDER BY category_value DESC, sku_count DESC;
+    """
+    cat_rows = fetch_all(cat_sql, custom_path=custom_path)
+    category_breakdown = []
+    for r in cat_rows:
+        cat_val = round(float(r["category_value"] or 0.0), 2)
+        pct_share = round((cat_val / total_val * 100), 1) if total_val > 0 else 0.0
+        category_breakdown.append({
+            "category": str(r["category"]),
+            "sku_count": int(r["sku_count"]),
+            "units": int(r["units"]),
+            "value": cat_val,
+            "percent_share": pct_share,
+        })
+
+    # Restock Urgency Alerts (Items at or below custom threshold or out of stock)
+    urgency_sql = """
+    SELECT id, product_id, name, category, supplier, quantity, price, stock_status, low_stock_threshold
+    FROM products
+    WHERE quantity <= low_stock_threshold OR stock_status IN ('Low Stock', 'Out of Stock')
+    ORDER BY
+        CASE WHEN quantity = 0 THEN 0 ELSE 1 END ASC,
+        quantity ASC,
+        price DESC
+    LIMIT 20;
+    """
+    urgency_rows = fetch_all(urgency_sql, custom_path=custom_path)
+    restock_items = []
+    for r in urgency_rows:
+        qty = int(r["quantity"])
+        thresh = int(r["low_stock_threshold"]) if "low_stock_threshold" in r.keys() and r["low_stock_threshold"] is not None else 10
+        shortage = max(0, thresh - qty)
+        restock_items.append({
+            "id": r["id"],
+            "product_id": r["product_id"],
+            "name": r["name"],
+            "category": r["category"],
+            "supplier": r["supplier"],
+            "quantity": qty,
+            "threshold": thresh,
+            "shortage": shortage,
+            "price": float(r["price"]),
+            "stock_status": r["stock_status"],
+            "urgency": "CRITICAL" if qty == 0 else ("HIGH" if qty <= (thresh // 2) else "WARNING"),
+        })
+
+    return {
+        "total_skus": total_skus,
+        "total_units": total_units,
+        "total_value": total_val,
+        "avg_sku_value": avg_sku_value,
+        "avg_unit_price": avg_unit_price,
+        "in_stock_count": in_stock_count,
+        "low_stock_count": low_count,
+        "out_of_stock_count": out_count,
+        "in_stock_pct": in_stock_pct,
+        "low_stock_pct": low_stock_pct,
+        "out_stock_pct": out_stock_pct,
+        "categories": category_breakdown,
+        "restock_alerts": restock_items,
     }

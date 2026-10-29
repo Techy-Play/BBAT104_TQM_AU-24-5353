@@ -425,7 +425,7 @@ class SettingsView(ctk.CTkScrollableFrame):
 
         infos = [
             ("Course Project", "BBAT104 Fundamentals of Total Quality Management"),
-            ("Assigned Quality Goal", "Q13 — Faster Search & Retrieval"),
+            ("Quality Focus", "Faster Search & Retrieval"),
             ("Operation Mode", "Fully Offline Desktop Application"),
             ("Database Engine", "SQLite3 (Persistent local storage, WAL mode, B-Tree indexes)"),
             ("Presentation Layer", "CustomTkinter 5.2.2 (Themeable responsive desktop GUI)"),

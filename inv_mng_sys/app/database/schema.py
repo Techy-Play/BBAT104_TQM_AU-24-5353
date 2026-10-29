@@ -17,7 +17,7 @@ from app.database.connection import create_connection, get_database_path
 
 logger = logging.getLogger(__name__)
 
-CURRENT_SCHEMA_VERSION = "1.0.0"
+CURRENT_SCHEMA_VERSION = "1.1.0"
 
 # DDL for persistent tables
 CREATE_TABLES_SQL = """
@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS products (
     quantity INTEGER NOT NULL DEFAULT 0 CHECK (quantity >= 0),
     price REAL NOT NULL DEFAULT 0.0 CHECK (price >= 0.0),
     stock_status TEXT NOT NULL DEFAULT 'In Stock' CHECK (stock_status IN ('In Stock', 'Low Stock', 'Out of Stock')),
+    low_stock_threshold INTEGER NOT NULL DEFAULT 10 CHECK (low_stock_threshold >= 0),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -122,11 +123,22 @@ def init_database(custom_path: Optional[Union[str, Path]] = None) -> Dict[str, U
             cursor.executescript(CREATE_INDEXES_SQL)
             cursor.executescript(CREATE_TRIGGERS_SQL)
 
+            # Column migration: Ensure low_stock_threshold exists in existing products table
+            cursor.execute("PRAGMA table_info(products);")
+            columns = [col["name"] for col in cursor.fetchall()]
+            if "low_stock_threshold" not in columns:
+                try:
+                    cursor.execute("ALTER TABLE products ADD COLUMN low_stock_threshold INTEGER NOT NULL DEFAULT 10 CHECK (low_stock_threshold >= 0);")
+                    logger.info("Migrated products table: added low_stock_threshold column.")
+                except sqlite3.OperationalError as e:
+                    logger.debug("Column migration note: %s", e)
+
             # Record schema version metadata if absent
             cursor.execute(
                 """
-                INSERT OR IGNORE INTO app_settings (key, value)
+                INSERT INTO app_settings (key, value)
                 VALUES ('schema_version', ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value;
                 """,
                 (CURRENT_SCHEMA_VERSION,),
             )

@@ -173,7 +173,7 @@ class ProductFormModal(ctk.CTkToplevel):
         )
         self.entry_price.grid(row=2, column=1, sticky="ew", padx=(8, 0), pady=4)
 
-        # Row 3: Stock Status and Help Rule Box
+        # Row 3: Stock Status and Custom Threshold (Manual Entry)
         status_frame = ctk.CTkFrame(form_grid, fg_color="transparent")
         status_frame.grid(row=3, column=0, sticky="ew", padx=(0, 8), pady=4)
 
@@ -202,30 +202,14 @@ class ProductFormModal(ctk.CTkToplevel):
         )
         self.opt_status.pack(fill="x")
 
-        # Auto rule callout box
-        rule_frame = ctk.CTkFrame(form_grid, fg_color="transparent")
-        rule_frame.grid(row=3, column=1, sticky="ew", padx=(8, 0), pady=4)
-
-        rule_lbl = ctk.CTkLabel(
-            rule_frame,
-            text="Threshold Status Rule (Q13 Automation)",
-            font=FONT_BODY_BOLD,
-            text_color=COLOR_TEXT_MUTED,
-            anchor="w",
+        # Custom Low Stock Threshold manual entry
+        self.entry_threshold = LabeledEntry(
+            form_grid,
+            label_text="Low Stock Threshold (units) *",
+            placeholder="e.g. 10",
+            width=260,
         )
-        rule_lbl.pack(fill="x", pady=(0, 4))
-
-        rule_box = ctk.CTkFrame(rule_frame, fg_color=COLOR_SECONDARY, height=34, corner_radius=6)
-        rule_box.pack(fill="x")
-        rule_box.pack_propagate(False)
-
-        rule_text = ctk.CTkLabel(
-            rule_box,
-            text="Qty ≤ 10 → Low Stock  |  Qty = 0 → Out of Stock",
-            font=FONT_SMALL,
-            text_color=COLOR_TEXT_MUTED,
-        )
-        rule_text.pack(expand=True)
+        self.entry_threshold.grid(row=3, column=1, sticky="ew", padx=(8, 0), pady=4)
 
         # Feedback banner
         self.banner = MessageBanner(card)
@@ -258,8 +242,11 @@ class ProductFormModal(ctk.CTkToplevel):
             self.entry_supplier.set_value(self.product.supplier)
             self.entry_qty.set_value(str(self.product.quantity))
             self.entry_price.set_value(f"{self.product.price:.2f}")
+            self.entry_threshold.set_value(str(self.product.low_stock_threshold))
             if self.product.stock_status in ("In Stock", "Low Stock", "Out of Stock"):
                 self.opt_status.set(self.product.stock_status)
+        else:
+            self.entry_threshold.set_value("10")
 
         # Fast keyboard navigation & hotkeys
         setup_form_keyboard_navigation(
@@ -271,6 +258,7 @@ class ProductFormModal(ctk.CTkToplevel):
                 self.entry_qty,
                 self.entry_price,
                 self.opt_status,
+                self.entry_threshold,
                 self.btn_save,
                 self.btn_cancel,
             ],
@@ -305,6 +293,7 @@ class ProductFormModal(ctk.CTkToplevel):
         supplier = self.entry_supplier.get_value()
         qty = self.entry_qty.get_value()
         price = self.entry_price.get_value()
+        threshold_val = self.entry_threshold.get_value()
         status_choice = self.opt_status.get()
         explicit_status = None if "Auto" in status_choice else status_choice
 
@@ -319,6 +308,7 @@ class ProductFormModal(ctk.CTkToplevel):
                     quantity=qty,
                     price=price,
                     stock_status=explicit_status,
+                    low_stock_threshold=threshold_val,
                     custom_path=self.db_path,
                 )
             else:
@@ -330,6 +320,7 @@ class ProductFormModal(ctk.CTkToplevel):
                     quantity=qty,
                     price=price,
                     stock_status=explicit_status,
+                    low_stock_threshold=threshold_val,
                     custom_path=self.db_path,
                 )
 
@@ -404,6 +395,7 @@ class ProductDetailsModal(ctk.CTkToplevel):
             ("Category", product.category),
             ("Supplier", product.supplier),
             ("In-Stock Quantity", f"{product.quantity:,} units"),
+            ("Low Stock Threshold", f"{product.low_stock_threshold:,} units"),
             ("Unit Price", f"${product.price:.2f}"),
         ]
 

@@ -195,7 +195,7 @@ class InventoryView(ctk.CTkFrame):
 
         sub = ctk.CTkLabel(
             title_box,
-            text="Q13: Faster Search & Retrieval • Multi-Attribute Filters • Whitelist Sorting",
+            text="Fast Search & Retrieval • Multi-Attribute Filters • Whitelist Sorting",
             font=FONT_SMALL,
             text_color=COLOR_TEXT_MUTED,
         )

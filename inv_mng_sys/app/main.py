@@ -74,7 +74,7 @@ class IMSApplication(ctk.CTk):
         self.configure(fg_color=COLOR_SURFACE_BG)
 
         # Window configuration
-        self.title("Inventory Management System (IMS) — BBAT104 (Q13)")
+        self.title("Inventory Management System (IMS) — BBAT104")
         self._set_window_icon()
 
         # Ensure database tables and indexes exist

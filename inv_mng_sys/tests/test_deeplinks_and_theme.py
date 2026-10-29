@@ -174,10 +174,26 @@ class TestDeepLinksAndThemePersistence(unittest.TestCase):
             self.assertIsNotNone(out_crit)
             self.assertEqual(out_crit.stock_status, "Out of Stock")
 
+            # Test Total Valuation deep link (sorted by price DESC)
+            dash.card_val.on_click_callback()
+            self.assertEqual(len(dispatched_criteria), 5)
+            val_crit = dispatched_criteria[-1]
+            self.assertIsNotNone(val_crit)
+            self.assertEqual(val_crit.sort_by, "Price")
+            self.assertEqual(val_crit.sort_direction, "DESC")
+
+            # Test Category Analysis row deep link
+            self.assertGreater(len(dash._category_row_pool), 0)
+            dash._category_row_pool[0]._handle_click()
+            self.assertEqual(len(dispatched_criteria), 6)
+            cat_crit = dispatched_criteria[-1]
+            self.assertIsNotNone(cat_crit)
+            self.assertTrue(bool(cat_crit.category))
+
             # Test Quick Search 'Open in Inventory' deep link
             dash.quick_search_entry.insert(0, "Drill")
             dash._handle_open_in_inventory()
-            self.assertEqual(len(dispatched_criteria), 5)
+            self.assertEqual(len(dispatched_criteria), 7)
             q_crit = dispatched_criteria[-1]
             self.assertIsNotNone(q_crit)
             self.assertEqual(q_crit.search_query, "Drill")

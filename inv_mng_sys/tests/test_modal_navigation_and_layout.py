@@ -91,6 +91,7 @@ class TestModalNavigationAndLayout(unittest.TestCase):
             self.assertTrue(hasattr(modal, "entry_qty"))
             self.assertTrue(hasattr(modal, "entry_price"))
             self.assertTrue(hasattr(modal, "opt_status"))
+            self.assertTrue(hasattr(modal, "entry_threshold"))
             self.assertTrue(hasattr(modal, "btn_save"))
             self.assertTrue(hasattr(modal, "btn_cancel"))
 
@@ -123,6 +124,7 @@ class TestModalNavigationAndLayout(unittest.TestCase):
                 modal.entry_qty,
                 modal.entry_price,
                 modal.opt_status,
+                modal.entry_threshold,
                 modal.btn_save,
                 modal.btn_cancel,
             ]
@@ -160,6 +162,7 @@ class TestModalNavigationAndLayout(unittest.TestCase):
                 modal.entry_supplier,
                 modal.entry_qty,
                 modal.entry_price,
+                modal.entry_threshold,
             ]:
                 bound_seqs = entry_item.entry._entry.bind()
                 self.assertIn("<Key-Tab>", bound_seqs, f"Tab key must be bound on {entry_item}")
