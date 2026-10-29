@@ -1,5 +1,5 @@
 ; Script generated for Inno Setup 6
-; Inventory Management System (IMS) - Offline Desktop Application (Q13)
+; Inventory Management System (IMS) - Offline Desktop Application
 
 #define MyAppName "Inventory Management System"
 #define MyAppVersion "1.0.0"
